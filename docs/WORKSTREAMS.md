@@ -15,10 +15,16 @@ Objetivo: reducir deuda técnica y preparar mejoras de performance.
 Estado: listo para arrancar.
 Entregable inicial: `docs/frontend_arch_round_1.md`
 
+## Workstream 4, Auditor de flujos POS
+Objetivo: contrastar las pantallas y flujos actuales contra prácticas correctas de operación retail.
+Estado: ronda 1 ejecutada.
+Entregable inicial: `docs/pos_flow_audit_round_1.md`
+
 ## Orden sugerido
 1. Seguridad
 2. QA funcional
 3. Arquitectura frontend
-4. UI/UX
-5. Datos y Supabase
-6. Producto/Operaciones POS
+4. Auditor de flujos POS
+5. UI/UX
+6. Datos y Supabase
+7. Producto/Operaciones POS

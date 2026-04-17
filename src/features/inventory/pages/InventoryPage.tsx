@@ -18,6 +18,7 @@ import { AdjustInventoryModal } from "../ui/AdjustInventoryModal";
 import { TransferStockPanel } from "../ui/TransferStockPanel";
 import { StockAlertsPanel } from "../ui/StockAlertsPanel";
 import { PhysicalCountPanel } from "../ui/PhysicalCountPanel";
+import { ReorderSuggestionsPanel } from "../ui/ReorderSuggestionsPanel";
 import { loadInventoryMeta } from "../services/inventoryService";
 
 export default function InventoryPage() {
@@ -147,6 +148,8 @@ export default function InventoryPage() {
             productOptions={productOptions}
           />
         </div>
+
+        <ReorderSuggestionsPanel alerts={alerts} rows={rows} />
 
         <Card>
           <CardHeader>

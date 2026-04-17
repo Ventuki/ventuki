@@ -15,6 +15,7 @@ import { searchProducts, type ProductRow } from "@/features/products/services/pr
 import { formatCurrency } from "../utils";
 
 const MIN_LAYAWAY_DEPOSIT_PERCENT = 20;
+const REQUIRE_MINIMUM_DEPOSIT = true;
 import { toast } from "sonner";
 
 interface CreateLayawayDialogProps {
@@ -155,7 +156,7 @@ export function CreateLayawayDialog({ open, onOpenChange }: CreateLayawayDialogP
           <div className="rounded-md border bg-amber-50 p-4 text-sm text-amber-950 space-y-1">
             <p className="font-medium">Política operativa de apartado</p>
             <p>- Requiere cliente identificado.</p>
-            <p>- Se recomienda un anticipo mínimo del {MIN_LAYAWAY_DEPOSIT_PERCENT}% del total.</p>
+            <p>- Anticipo mínimo esperado del {MIN_LAYAWAY_DEPOSIT_PERCENT}% del total.</p>
             <p>- La mercancía queda comprometida para este cliente, no vendida definitivamente.</p>
             <p>- Define una fecha límite para facilitar seguimiento y cancelación oportuna.</p>
           </div>
@@ -313,8 +314,8 @@ export function CreateLayawayDialog({ open, onOpenChange }: CreateLayawayDialogP
           {lines.length > 0 && (
             <div className="rounded-md border bg-muted/30 p-4 text-sm space-y-1">
               <p><span className="font-medium">Total del apartado:</span> {formatCurrency(total)}</p>
-              <p><span className="font-medium">Anticipo mínimo sugerido:</span> {formatCurrency(minimumDeposit)}</p>
-              <p className="text-muted-foreground">El apartado compromete stock. Si el negocio define anticipo obligatorio, este monto debe respetarse al confirmar la operación.</p>
+              <p><span className="font-medium">Anticipo mínimo {REQUIRE_MINIMUM_DEPOSIT ? "requerido" : "sugerido"}:</span> {formatCurrency(minimumDeposit)}</p>
+              <p className="text-muted-foreground">El apartado compromete stock. Este flujo debe confirmarse respetando la política operativa de anticipo y fecha límite.</p>
             </div>
           )}
 
@@ -340,7 +341,7 @@ export function CreateLayawayDialog({ open, onOpenChange }: CreateLayawayDialogP
             </Button>
             <Button
               type="submit"
-              disabled={createLayaway.isPending || lines.length === 0}
+              disabled={createLayaway.isPending || lines.length === 0 || (REQUIRE_MINIMUM_DEPOSIT && minimumDeposit <= 0)}
             >
               {createLayaway.isPending ? "Creando..." : "Crear Apartado"}
             </Button>

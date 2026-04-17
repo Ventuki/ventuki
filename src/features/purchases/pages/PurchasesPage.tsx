@@ -19,6 +19,7 @@ import {
   PurchaseRow,
   receivePurchase,
   reopenPurchase,
+  suggestSupplierForProducts,
 } from "@/features/purchases/services/purchaseService";
 import { purchaseSchema } from "@/features/purchases/validations/purchase.schema";
 import { canTransitionPurchase, type PurchaseStatus } from "@/features/purchases/ux/purchaseFlow";
@@ -48,6 +49,7 @@ export default function PurchasesPage() {
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<PurchaseItemDraft[]>([{ ...itemBase }]);
   const [saving, setSaving] = useState(false);
+  const [suggestedSupplierName, setSuggestedSupplierName] = useState<string | null>(null);
 
   const [selectedPurchaseId, setSelectedPurchaseId] = useState("");
   const [receiptItems, setReceiptItems] = useState<Array<any>>([]);
@@ -93,23 +95,36 @@ export default function PurchasesPage() {
     const raw = localStorage.getItem("ventuki.purchaseDraftFromReorder");
     if (!raw) return;
 
-    try {
-      const parsed = JSON.parse(raw) as Array<{ product_id: string; quantity: number; unit_cost?: number; tax_rate?: number }>;
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        setItems(parsed.map((item) => ({
-          product_id: item.product_id,
-          quantity: Number(item.quantity) || 1,
-          unit_cost: Number(item.unit_cost) || 0,
-          tax_rate: Number(item.tax_rate) || 0,
-        })));
-        toast.info("Se cargó una sugerencia de recompra desde Inventario. Completa proveedor, costos y datos de la orden.");
+    (async () => {
+      try {
+        const parsed = JSON.parse(raw) as Array<{ product_id: string; quantity: number; unit_cost?: number; tax_rate?: number }>;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setItems(parsed.map((item) => ({
+            product_id: item.product_id,
+            quantity: Number(item.quantity) || 1,
+            unit_cost: Number(item.unit_cost) || 0,
+            tax_rate: Number(item.tax_rate) || 0,
+          })));
+
+          if (company?.id) {
+            const suggestion = await suggestSupplierForProducts(company.id, parsed.map((item) => item.product_id));
+            if (suggestion.supplierId) {
+              setSupplierId(suggestion.supplierId);
+              setSuggestedSupplierName(suggestion.supplierName);
+              toast.info(`Se cargó recompra desde Inventario con proveedor sugerido: ${suggestion.supplierName || "sin nombre"}.`);
+            } else {
+              setSuggestedSupplierName(null);
+              toast.info("Se cargó una sugerencia de recompra desde Inventario. Completa proveedor, costos y datos de la orden.");
+            }
+          }
+        }
+      } catch {
+        // ignore malformed draft
+      } finally {
+        localStorage.removeItem("ventuki.purchaseDraftFromReorder");
       }
-    } catch {
-      // ignore malformed draft
-    } finally {
-      localStorage.removeItem("ventuki.purchaseDraftFromReorder");
-    }
-  }, []);
+    })();
+  }, [company?.id]);
 
   useEffect(() => {
     if (!selectedPurchaseId) return;
@@ -274,10 +289,11 @@ export default function PurchasesPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Proveedor</Label>
-                  <Select value={supplierId} onValueChange={setSupplierId}>
+                  <Select value={supplierId} onValueChange={(value) => { setSupplierId(value); setSuggestedSupplierName(suppliers.find((s) => s.id === value)?.name || null); }}>
                     <SelectTrigger><SelectValue placeholder="Selecciona proveedor" /></SelectTrigger>
                     <SelectContent>{suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                   </Select>
+                  {suggestedSupplierName && <p className="text-xs text-muted-foreground">Proveedor sugerido para esta recompra: {suggestedSupplierName}</p>}
                 </div>
               </div>
 

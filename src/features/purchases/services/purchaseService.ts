@@ -113,6 +113,45 @@ export async function getPendingPurchaseItems(purchaseId: string) {
   return { data: (result.data || []) as unknown as Array<any>, error: result.error };
 }
 
+export async function suggestSupplierForProducts(companyId: string, productIds: string[]) {
+  if (productIds.length === 0) return { supplierId: null as string | null, supplierName: null as string | null };
+
+  const { data, error } = await supabase
+    .from("purchase_items" as any)
+    .select("product_id,purchases!inner(supplier_id,suppliers(name),company_id,created_at)")
+    .in("product_id", productIds)
+    .order("created_at", { foreignTable: "purchases", ascending: false });
+
+  if (error || !data) {
+    return { supplierId: null as string | null, supplierName: null as string | null };
+  }
+
+  const hits = (data as any[])
+    .filter((row) => row?.purchases?.company_id === companyId)
+    .map((row) => ({
+      product_id: row.product_id as string,
+      supplier_id: row.purchases?.supplier_id as string | undefined,
+      supplier_name: row.purchases?.suppliers?.name as string | undefined,
+    }))
+    .filter((row) => !!row.supplier_id);
+
+  if (hits.length === 0) return { supplierId: null as string | null, supplierName: null as string | null };
+
+  const counts = new Map<string, { count: number; name: string | null }>();
+  for (const hit of hits) {
+    const current = counts.get(hit.supplier_id!);
+    counts.set(hit.supplier_id!, {
+      count: (current?.count || 0) + 1,
+      name: hit.supplier_name || current?.name || null,
+    });
+  }
+
+  const best = [...counts.entries()].sort((a, b) => b[1].count - a[1].count)[0];
+  if (!best) return { supplierId: null as string | null, supplierName: null as string | null };
+
+  return { supplierId: best[0], supplierName: best[1].name };
+}
+
 export async function receivePurchase(params: {
   purchaseId: string;
   warehouseId: string;

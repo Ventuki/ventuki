@@ -50,6 +50,7 @@ export function CreateLayawayDialog({ open, onOpenChange }: CreateLayawayDialogP
       items: [],
       due_date: "",
       notes: "",
+      initial_payment_amount: 0,
     },
   });
 
@@ -123,6 +124,11 @@ export function CreateLayawayDialog({ open, onOpenChange }: CreateLayawayDialogP
       toast.error("Agrega al menos un producto");
       return;
     }
+    if (REQUIRE_MINIMUM_DEPOSIT && Number(values.initial_payment_amount || 0) < minimumDeposit) {
+      toast.error(`El anticipo inicial debe ser al menos de ${formatCurrency(minimumDeposit)}`);
+      return;
+    }
+
     try {
       await createLayaway.mutateAsync({
         branch_id: values.branch_id,
@@ -134,6 +140,7 @@ export function CreateLayawayDialog({ open, onOpenChange }: CreateLayawayDialogP
         })),
         due_date: values.due_date,
         notes: values.notes,
+        initial_payment_amount: Number(values.initial_payment_amount || 0),
       });
       onOpenChange(false);
     } catch (e) {
@@ -319,6 +326,24 @@ export function CreateLayawayDialog({ open, onOpenChange }: CreateLayawayDialogP
             </div>
           )}
 
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Anticipo inicial</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.watch("initial_payment_amount") ?? 0}
+                onChange={(e) => form.setValue("initial_payment_amount", Number(e.target.value), { shouldValidate: true })}
+              />
+              <p className="text-xs text-muted-foreground">
+                {REQUIRE_MINIMUM_DEPOSIT
+                  ? `Mínimo requerido para este apartado: ${formatCurrency(minimumDeposit)}`
+                  : `Anticipo sugerido: ${formatCurrency(minimumDeposit)}`}
+              </p>
+            </div>
+          </div>
+
           {/* Due date & notes */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -341,7 +366,7 @@ export function CreateLayawayDialog({ open, onOpenChange }: CreateLayawayDialogP
             </Button>
             <Button
               type="submit"
-              disabled={createLayaway.isPending || lines.length === 0 || (REQUIRE_MINIMUM_DEPOSIT && minimumDeposit <= 0)}
+              disabled={createLayaway.isPending || lines.length === 0 || (REQUIRE_MINIMUM_DEPOSIT && Number(form.watch("initial_payment_amount") || 0) < minimumDeposit)}
             >
               {createLayaway.isPending ? "Creando..." : "Crear Apartado"}
             </Button>

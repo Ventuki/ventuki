@@ -12,6 +12,7 @@ export const createLayawaySchema = z.object({
   items: z.array(createLayawayItemSchema).min(1, "Agrega al menos un producto"),
   due_date: z.string().optional(),
   notes: z.string().optional(),
+  initial_payment_amount: z.number().nonnegative("El anticipo no puede ser negativo").optional(),
 });
 
 export const addPaymentSchema = z.object({

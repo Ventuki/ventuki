@@ -70,6 +70,7 @@ export interface CreateLayawayInput {
   }[];
   due_date?: string;
   notes?: string;
+  initial_payment_amount?: number;
 }
 
 export interface LayawayFilters {

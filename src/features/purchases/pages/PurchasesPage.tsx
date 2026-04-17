@@ -136,7 +136,7 @@ export default function PurchasesPage() {
         toast.error(error.message);
         return;
       }
-      setReceiptItems((data || []).map((row: any) => ({ ...row, receive_now: 0, incidence_type: "ok" as IncidenceType, incidence_notes: "" })));
+      setReceiptItems((data || []).map((row: any) => ({ ...row, receive_now: 0, incidence_type: "ok" as IncidenceType, incidence_notes: "", lot_code: "", expiration_date: "" })));
     })();
   }, [selectedPurchaseId]);
 
@@ -226,8 +226,20 @@ export default function PurchasesPage() {
       return;
     }
 
-    const payload = receiptItems
-      .filter((row) => Number(row.receive_now) > 0)
+    const rowsToReceive = receiptItems.filter((row) => Number(row.receive_now) > 0);
+
+    const missingExpirationControl = rowsToReceive.find((row) => {
+      const requiresExpiration = Boolean(row.products?.control_expiration);
+      if (!requiresExpiration) return false;
+      return !String(row.lot_code || "").trim() || !String(row.expiration_date || "").trim();
+    });
+
+    if (missingExpirationControl) {
+      toast.error("Captura lote y fecha de caducidad para los productos que requieren control de caducidad");
+      return;
+    }
+
+    const payload = rowsToReceive
       .map((row) => ({ purchase_item_id: row.id as string, quantity_received: Number(row.receive_now) }));
 
     if (payload.length === 0) {
@@ -235,12 +247,17 @@ export default function PurchasesPage() {
       return;
     }
 
-    const incidentLog = receiptItems
-      .filter((row) => Number(row.receive_now) > 0)
+    const incidentLog = rowsToReceive
       .map((row) => ({
         purchase_item_id: row.id,
         incidence_type: row.incidence_type as IncidenceType,
         notes: row.incidence_notes || null,
+        expiration_control: row.products?.control_expiration
+          ? {
+              lot_code: row.lot_code || null,
+              expiration_date: row.expiration_date || null,
+            }
+          : null,
       }));
 
     setReceiving(true);
@@ -262,7 +279,7 @@ export default function PurchasesPage() {
 
     const updated = await getPendingPurchaseItems(selectedPurchaseId);
     if (!updated.error) {
-      setReceiptItems((updated.data || []).map((row: any) => ({ ...row, receive_now: 0, incidence_type: "ok", incidence_notes: "" })));
+      setReceiptItems((updated.data || []).map((row: any) => ({ ...row, receive_now: 0, incidence_type: "ok", incidence_notes: "", lot_code: "", expiration_date: "" })));
     }
   };
 
@@ -389,6 +406,7 @@ export default function PurchasesPage() {
                     <TableHead>Pendiente</TableHead>
                     <TableHead>Recibir ahora</TableHead>
                     <TableHead>Incidencia</TableHead>
+                    <TableHead>Caducidad / lote</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -431,6 +449,25 @@ export default function PurchasesPage() {
                               onChange={(e) => setReceiptItems((prev) => prev.map((r) => (r.id === row.id ? { ...r, incidence_notes: e.target.value } : r)))}
                             />
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          {row.products?.control_expiration ? (
+                            <div className="space-y-2 min-w-48">
+                              <Input
+                                placeholder="Lote"
+                                value={row.lot_code || ""}
+                                onChange={(e) => setReceiptItems((prev) => prev.map((r) => (r.id === row.id ? { ...r, lot_code: e.target.value } : r)))}
+                              />
+                              <Input
+                                type="date"
+                                value={row.expiration_date || ""}
+                                onChange={(e) => setReceiptItems((prev) => prev.map((r) => (r.id === row.id ? { ...r, expiration_date: e.target.value } : r)))}
+                              />
+                              <p className="text-xs text-muted-foreground">Obligatorio para productos con control de caducidad.</p>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">No aplica</span>
+                          )}
                         </TableCell>
                       </TableRow>
                     );

@@ -106,7 +106,7 @@ export async function reopenPurchase(purchaseId: string, companyId: string) {
 export async function getPendingPurchaseItems(purchaseId: string) {
   const result = await supabase
     .from("purchase_items" as any)
-    .select("id,quantity,received_qty,unit_cost,products(id,name,sku)")
+    .select("id,quantity,received_qty,unit_cost,products(id,name,sku,control_expiration)")
     .eq("purchase_id", purchaseId)
     .order("created_at", { ascending: true });
 

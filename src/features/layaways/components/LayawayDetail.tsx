@@ -204,6 +204,7 @@ export function LayawayDetail() {
                 <Button
                   className="w-full gap-2"
                   onClick={() => setShowPaymentDialog(true)}
+                  disabled={overdue}
                 >
                   <Banknote className="h-4 w-4" />
                   Agregar Abono
@@ -217,6 +218,11 @@ export function LayawayDetail() {
                   <Ban className="h-4 w-4" />
                   Cancelar Apartado
                 </Button>
+                {overdue && (
+                  <p className="text-xs text-muted-foreground">
+                    Los abonos quedan bloqueados mientras el apartado esté vencido. Primero debe renovarse o resolverse operativamente.
+                  </p>
+                )}
               </CardContent>
             </Card>
           )}
@@ -238,7 +244,7 @@ export function LayawayDetail() {
       </div>
 
       {/* Add Payment Dialog */}
-      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+      <Dialog open={showPaymentDialog && !overdue} onOpenChange={setShowPaymentDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Registrar Abono</DialogTitle>

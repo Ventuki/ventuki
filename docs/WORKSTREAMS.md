@@ -17,8 +17,13 @@ Entregable inicial: `docs/frontend_arch_round_1.md`
 
 ## Workstream 4, Auditor de flujos POS
 Objetivo: contrastar las pantallas y flujos actuales contra prácticas correctas de operación retail.
-Estado: ronda 1 ejecutada.
-Entregable inicial: `docs/pos_flow_audit_round_1.md`
+Estado: rondas 1 y 2 ejecutadas, roadmap maestro generado.
+Entregables:
+- `docs/pos_flow_audit_round_1.md`
+- `docs/pos_flow_audit_round_2_purchases_inventory.md`
+- `docs/pos_flow_audit_round_2_pos_layaways.md`
+- `docs/pos_flow_audit_round_2_cash_register.md`
+- `docs/CORE_POS_REMEDIATION_ROADMAP.md`
 
 ## Orden sugerido
 1. Seguridad

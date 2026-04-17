@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import {
   cancelPurchase,
   confirmPurchase,
-  createDirectPurchase,
+  createDraftPurchase,
   getPendingPurchaseItems,
   listPurchases,
   loadPurchaseMeta,
@@ -54,7 +54,7 @@ export default function PurchasesPage() {
   const [warehouseId, setWarehouseId] = useState("");
   const [receiving, setReceiving] = useState(false);
 
-  const canCreate = useMemo(() => branchId && supplierId && warehouseId && items.every((i) => i.product_id && i.quantity > 0), [branchId, supplierId, warehouseId, items]);
+  const canCreate = useMemo(() => branchId && supplierId && items.every((i) => i.product_id && i.quantity > 0), [branchId, supplierId, items]);
   const selectedPurchase = useMemo(() => purchases.find((p) => p.id === selectedPurchaseId), [purchases, selectedPurchaseId]);
 
   const loadMeta = async () => {
@@ -109,19 +109,20 @@ export default function PurchasesPage() {
   const removeItem = (index: number) => setItems((prev) => prev.filter((_, idx) => idx !== index));
 
   const onCreatePurchase = async () => {
-    if (!company?.id || !branchId || !supplierId || !warehouseId || !user?.id) {
-      toast.error("Completa empresa, sucursal, proveedor y almacén destino");
+    if (!company?.id || !branchId || !supplierId || !user?.id) {
+      toast.error("Completa empresa, sucursal y proveedor");
       return;
     }
 
     setSaving(true);
-    const { data, error } = await createDirectPurchase({
+    const { data, error } = await createDraftPurchase({
       companyId: company.id,
       branchId,
       supplierId,
-      warehouseId,
       userId: user.id,
       invoiceNumber: folio,
+      expectedDate,
+      notes,
       items: items.filter((i) => i.product_id),
     });
     setSaving(false);
@@ -131,12 +132,12 @@ export default function PurchasesPage() {
       return;
     }
 
-    toast.success("Compra directa registrada exitosamente (Stock actualizado)");
+    toast.success("Orden de compra creada en draft");
     setFolio("");
     setExpectedDate("");
     setNotes("");
     setItems([{ ...itemBase }]);
-    if (data.purchase_id) {
+    if (data?.purchase_id) {
       setSelectedPurchaseId(data.purchase_id);
     }
     loadPurchases();
@@ -260,15 +261,12 @@ export default function PurchasesPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Almacén destino</Label>
-                  <Select value={warehouseId} onValueChange={setWarehouseId}>
-                    <SelectTrigger><SelectValue placeholder="Selecciona almacén" /></SelectTrigger>
-                    <SelectContent>{warehouses.map((w) => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}</SelectContent>
-                  </Select>
+                  <Label>Folio / Factura proveedor</Label>
+                  <Input value={folio} onChange={(e) => setFolio(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Folio / Factura</Label>
-                  <Input value={folio} onChange={(e) => setFolio(e.target.value)} />
+                  <Label>Fecha esperada</Label>
+                  <Input type="date" value={expectedDate} onChange={(e) => setExpectedDate(e.target.value)} />
                 </div>
               </div>
 

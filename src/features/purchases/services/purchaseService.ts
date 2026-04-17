@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { createPurchaseUseCase } from "@/features/purchases/application/createPurchase.usecase";
 
 export interface PurchaseRow {
   id: string;
@@ -44,33 +45,35 @@ export async function listPurchases(companyId: string) {
   return { data: (data || []) as unknown as PurchaseRow[], error };
 }
 
-/** ★ FASE2 FIX: Crear compra atómicamente via RPC */
-export async function createDirectPurchase(params: {
+export async function createDraftPurchase(params: {
   companyId: string;
   branchId: string;
   supplierId: string;
-  warehouseId: string;
   userId: string;
   invoiceNumber?: string;
+  expectedDate?: string;
+  notes?: string;
   items: PurchaseItemDraft[];
 }) {
-  const itemsPayload = params.items.map((item) => ({
-    product_id: item.product_id,
-    quantity: item.quantity,
-    unit_cost: item.unit_cost,
-  }));
+  try {
+    const result = await createPurchaseUseCase(
+      {
+        company_id: params.companyId,
+        branch_id: params.branchId,
+        actor_user_id: params.userId,
+        supplier_id: params.supplierId,
+        folio: params.invoiceNumber || undefined,
+        expected_date: params.expectedDate || undefined,
+        notes: params.notes || undefined,
+        items: params.items,
+      },
+      ["purchase.create"],
+    );
 
-  return await supabase.rpc("process_purchase_transaction" as any, {
-    p_purchase_params: {
-      company_id: params.companyId,
-      branch_id: params.branchId,
-      supplier_id: params.supplierId,
-      warehouse_id: params.warehouseId,
-      user_id: params.userId,
-      invoice_number: params.invoiceNumber || null,
-    },
-    p_lines: itemsPayload,
-  } as any);
+    return { data: result, error: null };
+  } catch (error: any) {
+    return { data: null, error };
+  }
 }
 
 export async function confirmPurchase(purchaseId: string, companyId: string) {

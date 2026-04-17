@@ -21,6 +21,7 @@ import {
   STATUS_COLORS,
   STATUS_LABELS,
   PAYMENT_METHOD_LABELS,
+  isLayawayOverdue,
 } from "../utils";
 import { LayawayItemRow } from "./LayawayItemRow";
 import { LayawayPaymentRow } from "./LayawayPaymentRow";
@@ -48,6 +49,7 @@ export function LayawayDetail() {
   const remaining = getRemainingAmount(layaway);
   const progress = getProgressPercent(layaway);
   const customerName = customerDisplayName(layaway.customer);
+  const overdue = isLayawayOverdue(layaway);
 
   const handleCancel = async () => {
     if (!id) return;
@@ -137,17 +139,23 @@ export function LayawayDetail() {
               </div>
 
               {layaway.due_date && (
-                <p className="text-sm text-muted-foreground">
-                  Fecha esperada de entrega:{" "}
-                  <span className="font-medium">
+                <div className={`rounded-md border p-3 text-sm space-y-1 ${overdue ? "bg-red-50 text-red-900" : "bg-muted/30"}`}>
+                  <p>
+                    <span className="font-medium">Fecha límite del apartado:</span>{" "}
                     {new Date(layaway.due_date).toLocaleDateString("es-MX")}
-                  </span>
-                </p>
+                  </p>
+                  {overdue ? (
+                    <p>Este apartado está vencido. Revisa si debe renovarse, cobrarse o cancelarse según la política del negocio.</p>
+                  ) : (
+                    <p>Este apartado sigue dentro de su vigencia operativa.</p>
+                  )}
+                </div>
               )}
               {layaway.status === "active" && (
                 <div className="rounded-md border bg-amber-50 p-3 text-sm text-amber-950 space-y-1">
                   <p><span className="font-medium">Regla operativa:</span> este apartado mantiene mercancía comprometida para el cliente.</p>
                   <p>Mientras siga activo, ese stock no debe tratarse como disponible para venta libre.</p>
+                  {overdue && <p className="font-medium text-red-700">Al estar vencido, conviene revisar renovación, liquidación o cancelación.</p>}
                 </div>
               )}
               {layaway.notes && (

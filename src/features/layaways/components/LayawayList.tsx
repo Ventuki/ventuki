@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Eye, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatCurrency, getRemainingAmount, customerDisplayName } from "../utils";
+import { formatCurrency, getRemainingAmount, customerDisplayName, isLayawayOverdue } from "../utils";
 import { STATUS_COLORS, STATUS_LABELS } from "../utils";
 import type { Layaway } from "../types";
 import { useLayaways } from "../hooks/useLayaways";
@@ -94,6 +94,7 @@ export function LayawayList() {
             ) : (
               layaways.map((row: Layaway) => {
                 const remaining = getRemainingAmount(row);
+                const overdue = isLayawayOverdue(row);
                 return (
                   <tr key={row.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3 font-mono text-xs">
@@ -106,12 +107,19 @@ export function LayawayList() {
                       {formatCurrency(remaining)}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", STATUS_COLORS[row.status])}>
-                        {STATUS_LABELS[row.status]}
-                      </span>
+                      <div className="flex flex-col items-center gap-1">
+                        <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", STATUS_COLORS[row.status])}>
+                          {STATUS_LABELS[row.status]}
+                        </span>
+                        {overdue && (
+                          <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
+                            Vencido
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
-                      {new Date(row.created_at).toLocaleDateString("es-MX")}
+                      {row.due_date ? new Date(row.due_date).toLocaleDateString("es-MX") : new Date(row.created_at).toLocaleDateString("es-MX")}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <Link

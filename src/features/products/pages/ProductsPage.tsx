@@ -52,6 +52,7 @@ export default function ProductsPage() {
       price: details.price,
       cost: details.cost,
       is_active: Boolean(details.product.is_active),
+      control_expiration: Boolean((details.product as any).control_expiration),
     });
   };
 
@@ -78,6 +79,7 @@ export default function ProductsPage() {
         cost: data.cost,
         is_active: data.is_active,
         manage_stock: data.manage_stock,
+        control_expiration: data.control_expiration,
         initial_stock: data.initial_stock,
         warehouse_id: data.warehouse_id,
       });

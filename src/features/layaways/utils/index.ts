@@ -1,5 +1,11 @@
 import type { Layaway } from "../types";
 
+export function isLayawayOverdue(layaway: Pick<Layaway, "status" | "due_date">): boolean {
+  if (layaway.status !== "active" || !layaway.due_date) return false;
+  const due = new Date(`${layaway.due_date}T23:59:59`);
+  return due.getTime() < Date.now();
+}
+
 export const STATUS_LABELS: Record<Layaway["status"], string> = {
   active: "Activo",
   completed: "Completado",

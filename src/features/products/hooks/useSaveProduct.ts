@@ -17,6 +17,7 @@ interface SaveProductInput {
   cost: number;
   is_active: boolean;
   manage_stock?: boolean;
+  control_expiration?: boolean;
   initial_stock?: number;
   warehouse_id?: string;
 }

@@ -24,6 +24,7 @@ const productSchema = z.object({
   cost: z.coerce.number().min(0, "El costo no puede ser negativo"),
   is_active: z.boolean().default(true),
   manage_stock: z.boolean().default(false),
+  control_expiration: z.boolean().default(false),
   initial_stock: z.coerce.number().min(0, "El stock inicial no puede ser negativo").optional(),
   warehouse_id: z.string().optional(),
 });
@@ -43,6 +44,7 @@ export const emptyFormValues: ProductFormValues = {
   cost: 0,
   is_active: true,
   manage_stock: false,
+  control_expiration: false,
   initial_stock: 0,
   warehouse_id: "",
 };
@@ -206,6 +208,20 @@ export function ProductForm({
                   />
                   <Label htmlFor="manage_stock" className="cursor-pointer">Gestionar Inventario (Cargar stock inicial)</Label>
                 </div>
+
+                <div className="flex items-center space-x-2 py-1">
+                  <Checkbox
+                    id="control_expiration"
+                    checked={watch("control_expiration")}
+                    onCheckedChange={(checked) => setValue("control_expiration", !!checked)}
+                  />
+                  <Label htmlFor="control_expiration" className="cursor-pointer">Este producto requiere control de caducidad</Label>
+                </div>
+                {watch("control_expiration") && (
+                  <p className="text-xs text-muted-foreground">
+                    Úsalo solo para productos con fecha de caducidad real. No aplica a toda ferretería, materiales o refacciones.
+                  </p>
+                )}
 
                 {watch("manage_stock") && (
                   <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">

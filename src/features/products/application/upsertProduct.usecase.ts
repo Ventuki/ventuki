@@ -25,6 +25,7 @@ export async function upsertProductUseCase(command: ProductUpsertInput) {
     brand_id: input.brand_id || null,
     unit_id: input.unit_id || null,
     is_active: input.is_active,
+    control_expiration: input.control_expiration,
   });
 
   if (saved.error || !saved.data?.id) {
@@ -93,6 +94,7 @@ export async function upsertProductUseCase(command: ProductUpsertInput) {
       price: input.price,
       cost: input.cost,
       is_active: input.is_active,
+      control_expiration: input.control_expiration,
     },
   });
 

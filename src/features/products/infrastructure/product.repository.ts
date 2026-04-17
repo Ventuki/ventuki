@@ -10,6 +10,7 @@ export const productRepository = {
     brand_id?: string | null;
     unit_id?: string | null;
     is_active: boolean;
+    control_expiration?: boolean;
   }) {
     if (productId) {
       return await supabase

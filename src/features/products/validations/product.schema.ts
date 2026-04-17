@@ -17,6 +17,7 @@ export const productUpsertSchema = z.object({
   cost: z.number().min(0).max(9_999_999),
   is_active: z.boolean(),
   manage_stock: z.boolean().optional().default(false),
+  control_expiration: z.boolean().optional().default(false),
   initial_stock: z.number().min(0).optional().default(0),
   warehouse_id: z.string().uuid().optional(),
 });

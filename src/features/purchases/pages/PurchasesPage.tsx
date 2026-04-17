@@ -90,6 +90,28 @@ export default function PurchasesPage() {
   }, [company?.id]);
 
   useEffect(() => {
+    const raw = localStorage.getItem("ventuki.purchaseDraftFromReorder");
+    if (!raw) return;
+
+    try {
+      const parsed = JSON.parse(raw) as Array<{ product_id: string; quantity: number; unit_cost?: number; tax_rate?: number }>;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        setItems(parsed.map((item) => ({
+          product_id: item.product_id,
+          quantity: Number(item.quantity) || 1,
+          unit_cost: Number(item.unit_cost) || 0,
+          tax_rate: Number(item.tax_rate) || 0,
+        })));
+        toast.info("Se cargó una sugerencia de recompra desde Inventario. Completa proveedor, costos y datos de la orden.");
+      }
+    } catch {
+      // ignore malformed draft
+    } finally {
+      localStorage.removeItem("ventuki.purchaseDraftFromReorder");
+    }
+  }, []);
+
+  useEffect(() => {
     if (!selectedPurchaseId) return;
     (async () => {
       const { data, error } = await getPendingPurchaseItems(selectedPurchaseId);

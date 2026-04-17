@@ -1,0 +1,6 @@
+-- Smoke checks sugeridos para RLS fase 3 (ejecución manual)
+-- 1) Con usuario A de company A: SELECT products de company A => OK
+-- 2) Con usuario A de company A: SELECT products de company B => 0 filas
+-- 3) Con usuario A de company A: INSERT stock_movements company B => error RLS
+-- 4) Con usuario manager/admin de company A: CRUD products => OK
+-- 5) Con usuario cashier de company A: UPDATE products => error RLS

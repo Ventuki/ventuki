@@ -1,0 +1,187 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════════════════════════════════════════════════════
+   POS SaaS Design System
+   All colors MUST be HSL. Use semantic tokens everywhere.
+   ═══════════════════════════════════════════════════════════ */
+
+@layer base {
+  :root {
+    /* ─── Surfaces ─── */
+    --background: 0 0% 98%;
+    --foreground: 220 20% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 10%;
+
+    /* ─── Brand / Primary (Blue) ─── */
+    --primary: 217 91% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    /* ─── Secondary (Slate) ─── */
+    --secondary: 214 20% 94%;
+    --secondary-foreground: 220 20% 18%;
+
+    /* ─── Muted ─── */
+    --muted: 214 20% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    /* ─── Accent (Indigo tint) ─── */
+    --accent: 217 91% 96%;
+    --accent-foreground: 217 91% 40%;
+
+    /* ─── Destructive (Red) ─── */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* ─── Success (Green) ─── */
+    --success: 142 72% 40%;
+    --success-foreground: 0 0% 100%;
+
+    /* ─── Warning (Amber) ─── */
+    --warning: 38 92% 50%;
+    --warning-foreground: 38 92% 14%;
+
+    /* ─── Info (Sky) ─── */
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+
+    /* ─── Borders & Inputs ─── */
+    --border: 214 20% 90%;
+    --input: 214 20% 90%;
+    --ring: 217 91% 50%;
+
+    /* ─── Radius ─── */
+    --radius: 0.5rem;
+
+    /* ─── Sidebar ─── */
+    --sidebar-background: 220 20% 12%;
+    --sidebar-foreground: 214 20% 90%;
+    --sidebar-primary: 217 91% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 20% 18%;
+    --sidebar-accent-foreground: 214 20% 90%;
+    --sidebar-border: 220 20% 20%;
+    --sidebar-ring: 217 91% 55%;
+    --sidebar-muted: 220 15% 25%;
+
+    /* ─── POS-specific tokens ─── */
+    --pos-toolbar: 0 0% 100%;
+    --pos-ticket-bg: 0 0% 100%;
+    --pos-total-bg: 217 91% 96%;
+    --pos-highlight: 217 91% 50%;
+
+    /* ─── Chart palette ─── */
+    --chart-1: 217 91% 50%;
+    --chart-2: 142 72% 40%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 280 67% 55%;
+    --chart-5: 0 84% 60%;
+  }
+
+  .dark {
+    /* ─── Surfaces ─── */
+    --background: 222 20% 7%;
+    --foreground: 210 20% 95%;
+
+    --card: 222 20% 10%;
+    --card-foreground: 210 20% 95%;
+
+    --popover: 222 20% 10%;
+    --popover-foreground: 210 20% 95%;
+
+    /* ─── Brand / Primary ─── */
+    --primary: 217 91% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    /* ─── Secondary ─── */
+    --secondary: 217 25% 18%;
+    --secondary-foreground: 210 20% 95%;
+
+    /* ─── Muted ─── */
+    --muted: 217 25% 18%;
+    --muted-foreground: 215 20% 65%;
+
+    /* ─── Accent ─── */
+    --accent: 217 30% 20%;
+    --accent-foreground: 217 91% 70%;
+
+    /* ─── Destructive ─── */
+    --destructive: 0 63% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* ─── Success ─── */
+    --success: 142 60% 45%;
+    --success-foreground: 0 0% 100%;
+
+    /* ─── Warning ─── */
+    --warning: 38 80% 50%;
+    --warning-foreground: 38 92% 14%;
+
+    /* ─── Info ─── */
+    --info: 199 80% 50%;
+    --info-foreground: 0 0% 100%;
+
+    /* ─── Borders & Inputs ─── */
+    --border: 217 25% 20%;
+    --input: 217 25% 20%;
+    --ring: 217 91% 55%;
+
+    /* ─── Sidebar ─── */
+    --sidebar-background: 222 20% 5%;
+    --sidebar-foreground: 214 20% 85%;
+    --sidebar-primary: 217 91% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 20% 12%;
+    --sidebar-accent-foreground: 214 20% 85%;
+    --sidebar-border: 222 20% 15%;
+    --sidebar-ring: 217 91% 55%;
+    --sidebar-muted: 222 15% 20%;
+
+    /* ─── POS-specific tokens ─── */
+    --pos-toolbar: 222 20% 10%;
+    --pos-ticket-bg: 222 20% 10%;
+    --pos-total-bg: 217 30% 15%;
+    --pos-highlight: 217 91% 55%;
+
+    /* ─── Chart palette ─── */
+    --chart-1: 217 91% 55%;
+    --chart-2: 142 60% 45%;
+    --chart-3: 38 80% 50%;
+    --chart-4: 280 60% 60%;
+    --chart-5: 0 63% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+}
+
+/* ─── Utility classes ─── */
+@layer utilities {
+  .pos-shadow-sm {
+    box-shadow: 0 1px 2px 0 hsl(var(--foreground) / 0.04);
+  }
+  .pos-shadow {
+    box-shadow: 0 1px 3px 0 hsl(var(--foreground) / 0.06), 0 1px 2px -1px hsl(var(--foreground) / 0.06);
+  }
+  .pos-shadow-md {
+    box-shadow: 0 4px 6px -1px hsl(var(--foreground) / 0.06), 0 2px 4px -2px hsl(var(--foreground) / 0.06);
+  }
+}

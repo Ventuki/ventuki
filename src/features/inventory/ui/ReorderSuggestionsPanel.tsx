@@ -30,8 +30,12 @@ export function ReorderSuggestionsPanel({ alerts, rows }: { alerts: StockAlert[]
       tax_rate: 0,
     }));
 
-    localStorage.setItem("ventuki.purchaseDraftFromReorder", JSON.stringify(payload));
-    toast.success("Lista de recompra preparada. Ábrela en Compras para completar proveedor y costos.");
+    localStorage.setItem("ventuki.purchaseDraftFromReorder", JSON.stringify({
+      source: "reorder-suggestions",
+      items: payload,
+      created_at: new Date().toISOString(),
+    }));
+    toast.success("Lista de recompra preparada. Ábrela en Compras para completar proveedor, costos y revisar agrupación sugerida.");
   };
 
   return (

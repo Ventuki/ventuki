@@ -97,9 +97,11 @@ export default function PurchasesPage() {
 
     (async () => {
       try {
-        const parsed = JSON.parse(raw) as Array<{ product_id: string; quantity: number; unit_cost?: number; tax_rate?: number }>;
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setItems(parsed.map((item) => ({
+        const parsed = JSON.parse(raw) as { items?: Array<{ product_id: string; quantity: number; unit_cost?: number; tax_rate?: number }> } | Array<{ product_id: string; quantity: number; unit_cost?: number; tax_rate?: number }>;
+        const reorderItems = Array.isArray(parsed) ? parsed : (parsed.items || []);
+
+        if (Array.isArray(reorderItems) && reorderItems.length > 0) {
+          setItems(reorderItems.map((item) => ({
             product_id: item.product_id,
             quantity: Number(item.quantity) || 1,
             unit_cost: Number(item.unit_cost) || 0,
@@ -107,11 +109,11 @@ export default function PurchasesPage() {
           })));
 
           if (company?.id) {
-            const suggestion = await suggestSupplierForProducts(company.id, parsed.map((item) => item.product_id));
+            const suggestion = await suggestSupplierForProducts(company.id, reorderItems.map((item) => item.product_id));
             if (suggestion.supplierId) {
               setSupplierId(suggestion.supplierId);
               setSuggestedSupplierName(suggestion.supplierName);
-              toast.info(`Se cargó recompra desde Inventario con proveedor sugerido: ${suggestion.supplierName || "sin nombre"}.`);
+              toast.info(`Se cargó recompra desde Inventario con proveedor sugerido: ${suggestion.supplierName || "sin nombre"}. Revisa si conviene separar productos para otros proveedores.`);
             } else {
               setSuggestedSupplierName(null);
               toast.info("Se cargó una sugerencia de recompra desde Inventario. Completa proveedor, costos y datos de la orden.");
@@ -312,6 +314,15 @@ export default function PurchasesPage() {
                 <Label>Notas</Label>
                 <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
               </div>
+
+              {suggestedSupplierName && items.length > 0 && (
+                <div className="rounded-md border bg-muted/30 p-3 text-sm">
+                  <p className="font-medium">Agrupación sugerida de recompra</p>
+                  <p className="text-muted-foreground">
+                    Esta recompra se cargó con proveedor sugerido: {suggestedSupplierName}. Si algunos productos deben comprarse con otro proveedor, sepáralos en otro draft.
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-3">
                 {items.map((item, idx) => (

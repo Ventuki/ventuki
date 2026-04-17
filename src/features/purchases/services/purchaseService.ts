@@ -126,23 +126,24 @@ export async function suggestSupplierForProducts(companyId: string, productIds: 
     return { supplierId: null as string | null, supplierName: null as string | null };
   }
 
-  const hits = (data as any[])
-    .filter((row) => row?.purchases?.company_id === companyId)
-    .map((row) => ({
-      product_id: row.product_id as string,
-      supplier_id: row.purchases?.supplier_id as string | undefined,
-      supplier_name: row.purchases?.suppliers?.name as string | undefined,
-    }))
-    .filter((row) => !!row.supplier_id);
+  const groupedByProduct = new Map<string, { supplierId: string; supplierName: string | null }>();
 
-  if (hits.length === 0) return { supplierId: null as string | null, supplierName: null as string | null };
+  for (const row of data as any[]) {
+    const productId = row.product_id as string;
+    if (groupedByProduct.has(productId)) continue;
+    if (row?.purchases?.company_id !== companyId || !row?.purchases?.supplier_id) continue;
+    groupedByProduct.set(productId, {
+      supplierId: row.purchases.supplier_id as string,
+      supplierName: row.purchases?.suppliers?.name || null,
+    });
+  }
 
   const counts = new Map<string, { count: number; name: string | null }>();
-  for (const hit of hits) {
-    const current = counts.get(hit.supplier_id!);
-    counts.set(hit.supplier_id!, {
+  for (const hit of groupedByProduct.values()) {
+    const current = counts.get(hit.supplierId);
+    counts.set(hit.supplierId, {
       count: (current?.count || 0) + 1,
-      name: hit.supplier_name || current?.name || null,
+      name: hit.supplierName || current?.name || null,
     });
   }
 

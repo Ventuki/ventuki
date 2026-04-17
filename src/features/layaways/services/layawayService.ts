@@ -5,6 +5,7 @@ import type {
   LayawayDetail,
   LayawayFilters,
   AddPaymentInput,
+  RenewLayawayInput,
 } from "../types";
 
 export async function createLayaway(input: CreateLayawayInput) {
@@ -50,4 +51,26 @@ export async function getLayawayDetail(layawayId: string) {
   });
   if (error) throw error;
   return data as LayawayDetail;
+}
+
+export async function renewLayaway(input: RenewLayawayInput) {
+  const current = await getLayawayDetail(input.layaway_id);
+  const nextNotes = [
+    current.notes?.trim(),
+    `[Renovación ${new Date().toLocaleString("es-MX")}] ${input.renewal_note.trim()}`,
+  ].filter(Boolean).join("\n\n");
+
+  const { data, error } = await supabase
+    .from("layaways" as any)
+    .update({
+      due_date: input.due_date,
+      notes: nextNotes,
+      updated_at: new Date().toISOString(),
+    } as any)
+    .eq("id", input.layaway_id)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return data as Layaway;
 }

@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useLayawayDetail, useCancelLayaway } from "../hooks/useLayaways";
 import { useAddLayawayPayment } from "../hooks/useLayawayPayments";
+import { useRenewLayaway } from "../hooks/useRenewLayaway";
 import { addPaymentSchema, type AddPaymentFormValues } from "../schemas/layaway.schema";
 import {
   formatCurrency,
@@ -20,7 +21,6 @@ import {
   customerDisplayName,
   STATUS_COLORS,
   STATUS_LABELS,
-  PAYMENT_METHOD_LABELS,
   isLayawayOverdue,
 } from "../utils";
 import { LayawayItemRow } from "./LayawayItemRow";
@@ -31,7 +31,11 @@ export function LayawayDetail() {
   const { data: layaway, isLoading } = useLayawayDetail(id ?? null);
   const cancelLayaway = useCancelLayaway();
   const addPayment = useAddLayawayPayment();
+  const renewLayaway = useRenewLayaway();
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showRenewDialog, setShowRenewDialog] = useState(false);
+  const [renewDueDate, setRenewDueDate] = useState("");
+  const [renewalNote, setRenewalNote] = useState("");
 
   const paymentForm = useForm<AddPaymentFormValues>({
     resolver: zodResolver(addPaymentSchema),
@@ -77,6 +81,18 @@ export function LayawayDetail() {
     }
   });
 
+  const handleRenewLayaway = async () => {
+    if (!id || !renewDueDate.trim() || !renewalNote.trim()) return;
+    await renewLayaway.mutateAsync({
+      layaway_id: id,
+      due_date: renewDueDate,
+      renewal_note: renewalNote,
+    });
+    setShowRenewDialog(false);
+    setRenewDueDate("");
+    setRenewalNote("");
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center gap-4">
@@ -90,22 +106,18 @@ export function LayawayDetail() {
         <div>
           <h1 className="text-2xl font-bold">Apartado #{id?.slice(0, 8).toUpperCase()}</h1>
           <p className="text-sm text-muted-foreground">
-            Cliente: {customerName} — Creado el{" "}
-            {new Date(layaway.created_at).toLocaleDateString("es-MX")}
+            Cliente: {customerName} , Creado el {new Date(layaway.created_at).toLocaleDateString("es-MX")}
           </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Left: Info + Items */}
         <div className="space-y-6 lg:col-span-2">
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Resumen</CardTitle>
-                <span
-                  className={`rounded-full px-3 py-1 text-sm font-medium ${STATUS_COLORS[layaway.status]}`}
-                >
+                <span className={`rounded-full px-3 py-1 text-sm font-medium ${STATUS_COLORS[layaway.status]}`}>
                   {STATUS_LABELS[layaway.status]}
                 </span>
               </div>
@@ -117,9 +129,7 @@ export function LayawayDetail() {
                   <p className="text-xs text-muted-foreground">Total</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-green-600">
-                    {formatCurrency(layaway.paid_amount)}
-                  </p>
+                  <p className="text-2xl font-bold text-green-600">{formatCurrency(layaway.paid_amount)}</p>
                   <p className="text-xs text-muted-foreground">Pagado</p>
                 </div>
                 <div>
@@ -140,10 +150,7 @@ export function LayawayDetail() {
 
               {layaway.due_date && (
                 <div className={`rounded-md border p-3 text-sm space-y-1 ${overdue ? "bg-red-50 text-red-900" : "bg-muted/30"}`}>
-                  <p>
-                    <span className="font-medium">Fecha límite del apartado:</span>{" "}
-                    {new Date(layaway.due_date).toLocaleDateString("es-MX")}
-                  </p>
+                  <p><span className="font-medium">Fecha límite del apartado:</span> {new Date(layaway.due_date).toLocaleDateString("es-MX")}</p>
                   {overdue ? (
                     <p>Este apartado está vencido. Revisa si debe renovarse, cobrarse o cancelarse según la política del negocio.</p>
                   ) : (
@@ -158,9 +165,7 @@ export function LayawayDetail() {
                   {overdue && <p className="font-medium text-red-700">Al estar vencido, conviene revisar renovación, liquidación o cancelación.</p>}
                 </div>
               )}
-              {layaway.notes && (
-                <p className="text-sm text-muted-foreground">Notas: {layaway.notes}</p>
-              )}
+              {layaway.notes && <p className="text-sm text-muted-foreground whitespace-pre-line">Notas: {layaway.notes}</p>}
             </CardContent>
           </Card>
 
@@ -180,9 +185,7 @@ export function LayawayDetail() {
                     </tr>
                   </thead>
                   <tbody>
-                    {layaway.items.map((item) => (
-                      <LayawayItemRow key={item.id} item={item} />
-                    ))}
+                    {layaway.items.map((item) => <LayawayItemRow key={item.id} item={item} />)}
                   </tbody>
                 </table>
               ) : (
@@ -192,29 +195,23 @@ export function LayawayDetail() {
           </Card>
         </div>
 
-        {/* Right: Payments + Actions */}
         <div className="space-y-6">
-          {/* Actions */}
           {layaway.status === "active" && (
             <Card>
               <CardHeader>
                 <CardTitle>Acciones</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button
-                  className="w-full gap-2"
-                  onClick={() => setShowPaymentDialog(true)}
-                  disabled={overdue}
-                >
+                <Button className="w-full gap-2" onClick={() => setShowPaymentDialog(true)} disabled={overdue}>
                   <Banknote className="h-4 w-4" />
                   Agregar Abono
                 </Button>
-                <Button
-                  variant="outline"
-                  className="w-full gap-2 text-destructive hover:bg-destructive/10"
-                  onClick={handleCancel}
-                  disabled={cancelLayaway.isPending}
-                >
+                {overdue && (
+                  <Button variant="secondary" className="w-full gap-2" onClick={() => setShowRenewDialog(true)}>
+                    Renovar Apartado
+                  </Button>
+                )}
+                <Button variant="outline" className="w-full gap-2 text-destructive hover:bg-destructive/10" onClick={handleCancel} disabled={cancelLayaway.isPending}>
                   <Ban className="h-4 w-4" />
                   Cancelar Apartado
                 </Button>
@@ -227,7 +224,6 @@ export function LayawayDetail() {
             </Card>
           )}
 
-          {/* Payment history */}
           <Card>
             <CardHeader>
               <CardTitle>Pagos ({layaway.payments?.length ?? 0})</CardTitle>
@@ -243,7 +239,6 @@ export function LayawayDetail() {
         </div>
       </div>
 
-      {/* Add Payment Dialog */}
       <Dialog open={showPaymentDialog && !overdue} onOpenChange={setShowPaymentDialog}>
         <DialogContent>
           <DialogHeader>
@@ -252,30 +247,14 @@ export function LayawayDetail() {
           <form onSubmit={handleAddPayment} className="space-y-4">
             <div className="space-y-2">
               <Label>Monto</Label>
-              <Input
-                type="number"
-                min={0.01}
-                step={0.01}
-                {...paymentForm.register("amount", { valueAsNumber: true })}
-              />
-              {paymentForm.formState.errors.amount && (
-                <p className="text-xs text-destructive">
-                  {paymentForm.formState.errors.amount.message}
-                </p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Restan {formatCurrency(remaining)}
-              </p>
+              <Input type="number" min={0.01} step={0.01} {...paymentForm.register("amount", { valueAsNumber: true })} />
+              {paymentForm.formState.errors.amount && <p className="text-xs text-destructive">{paymentForm.formState.errors.amount.message}</p>}
+              <p className="text-xs text-muted-foreground">Restan {formatCurrency(remaining)}</p>
             </div>
             <div className="space-y-2">
               <Label>Método de pago</Label>
-              <Select
-                value={paymentForm.watch("payment_method")}
-                onValueChange={(v) => paymentForm.setValue("payment_method", v as any)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+              <Select value={paymentForm.watch("payment_method")} onValueChange={(v) => paymentForm.setValue("payment_method", v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="cash">Efectivo</SelectItem>
                   <SelectItem value="card">Tarjeta</SelectItem>
@@ -288,15 +267,32 @@ export function LayawayDetail() {
               <Button type="submit" disabled={addPayment.isPending} className="flex-1">
                 {addPayment.isPending ? "Guardando..." : "Registrar Pago"}
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowPaymentDialog(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => setShowPaymentDialog(false)}>
                 Cancelar
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showRenewDialog} onOpenChange={setShowRenewDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Renovar Apartado</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nueva fecha límite</Label>
+              <Input type="date" value={renewDueDate} onChange={(e) => setRenewDueDate(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Motivo / nota de renovación</Label>
+              <Input value={renewalNote} onChange={(e) => setRenewalNote(e.target.value)} placeholder="Ej. cliente confirmó pago el lunes" />
+            </div>
+            <Button onClick={handleRenewLayaway} disabled={renewLayaway.isPending || !renewDueDate.trim() || !renewalNote.trim()} className="w-full">
+              {renewLayaway.isPending ? "Renovando..." : "Confirmar renovación"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

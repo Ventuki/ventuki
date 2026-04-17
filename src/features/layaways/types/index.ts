@@ -13,7 +13,6 @@ export interface Layaway {
   updated_at: string;
   due_date: string | null;
   notes: string | null;
-  // Joined fields
   customer?: {
     id: string;
     first_name: string;
@@ -85,4 +84,10 @@ export interface AddPaymentInput {
   amount: number;
   payment_method: "cash" | "card" | "transfer" | "mixed";
   payment_details?: Record<string, unknown>;
+}
+
+export interface RenewLayawayInput {
+  layaway_id: string;
+  due_date: string;
+  renewal_note: string;
 }

@@ -1,5 +1,11 @@
 import type { Layaway } from "../types";
 
+export interface LayawayRenewalEntry {
+  raw: string;
+  happenedAt: string;
+  note: string;
+}
+
 export function isLayawayOverdue(layaway: Pick<Layaway, "status" | "due_date">): boolean {
   if (layaway.status !== "active" || !layaway.due_date) return false;
   const due = new Date(`${layaway.due_date}T23:59:59`);
@@ -39,6 +45,32 @@ export function getRemainingAmount(layaway: Pick<Layaway, "total_amount" | "paid
 export function getProgressPercent(layaway: Pick<Layaway, "total_amount" | "paid_amount">): number {
   if (layaway.total_amount === 0) return 100;
   return Math.min(100, Math.round((layaway.paid_amount / layaway.total_amount) * 100));
+}
+
+export function extractLayawayRenewals(notes: string | null | undefined): LayawayRenewalEntry[] {
+  if (!notes) return [];
+
+  return notes
+    .split(/\n\n+/)
+    .map((chunk) => chunk.trim())
+    .filter((chunk) => chunk.startsWith("[Renovación "))
+    .map((chunk) => {
+      const match = chunk.match(/^\[Renovación\s(.+?)\]\s*(.*)$/);
+      return {
+        raw: chunk,
+        happenedAt: match?.[1] || "",
+        note: match?.[2] || chunk,
+      };
+    });
+}
+
+export function getLayawayGeneralNotes(notes: string | null | undefined): string {
+  if (!notes) return "";
+  return notes
+    .split(/\n\n+/)
+    .map((chunk) => chunk.trim())
+    .filter((chunk) => chunk && !chunk.startsWith("[Renovación "))
+    .join("\n\n");
 }
 
 export function customerDisplayName(customer: Layaway["customer"]): string {

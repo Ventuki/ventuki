@@ -22,6 +22,8 @@ import {
   STATUS_COLORS,
   STATUS_LABELS,
   isLayawayOverdue,
+  extractLayawayRenewals,
+  getLayawayGeneralNotes,
 } from "../utils";
 import { LayawayItemRow } from "./LayawayItemRow";
 import { LayawayPaymentRow } from "./LayawayPaymentRow";
@@ -54,6 +56,8 @@ export function LayawayDetail() {
   const progress = getProgressPercent(layaway);
   const customerName = customerDisplayName(layaway.customer);
   const overdue = isLayawayOverdue(layaway);
+  const renewals = extractLayawayRenewals(layaway.notes);
+  const generalNotes = getLayawayGeneralNotes(layaway.notes);
 
   const handleCancel = async () => {
     if (!id) return;
@@ -165,7 +169,7 @@ export function LayawayDetail() {
                   {overdue && <p className="font-medium text-red-700">Al estar vencido, conviene revisar renovación, liquidación o cancelación.</p>}
                 </div>
               )}
-              {layaway.notes && <p className="text-sm text-muted-foreground whitespace-pre-line">Notas: {layaway.notes}</p>}
+              {generalNotes && <p className="text-sm text-muted-foreground whitespace-pre-line">Notas: {generalNotes}</p>}
             </CardContent>
           </Card>
 
@@ -223,6 +227,25 @@ export function LayawayDetail() {
               </CardContent>
             </Card>
           )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Historial operativo</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {renewals.length > 0 ? (
+                renewals.map((entry, index) => (
+                  <div key={`${entry.happenedAt}-${index}`} className="rounded-md border px-3 py-2 text-sm">
+                    <p className="font-medium">Renovación</p>
+                    <p className="text-xs text-muted-foreground">Cuándo: {entry.happenedAt || "Sin fecha"}</p>
+                    <p className="mt-1 text-muted-foreground">Por qué: {entry.note || "Sin detalle"}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-center text-sm text-muted-foreground">Sin renovaciones registradas</p>
+              )}
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>

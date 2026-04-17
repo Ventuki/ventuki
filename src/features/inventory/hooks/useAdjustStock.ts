@@ -7,7 +7,7 @@ export function useAdjustStock(onDone?: () => void) {
   const { company, branch, user } = useAuth();
   const [loading, setLoading] = useState(false);
 
-  const run = async (input: { warehouse_id: string; product_id: string; delta: number; notes?: string }) => {
+  const run = async (input: { warehouse_id: string; product_id: string; delta: number; reason: "merma" | "robo" | "dano" | "conteo_fisico" | "error_captura" | "regularizacion" | "otro"; notes?: string }) => {
     if (!company?.id || !branch?.id) throw new Error("Contexto de tenant incompleto");
     setLoading(true);
     try {

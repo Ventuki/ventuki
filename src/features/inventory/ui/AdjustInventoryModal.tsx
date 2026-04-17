@@ -6,12 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function AdjustInventoryModal({ onSubmit, warehouseOptions, productOptions }: {
-  onSubmit: (input: { warehouse_id: string; product_id: string; delta: number; notes?: string }) => Promise<void>;
+  onSubmit: (input: { warehouse_id: string; product_id: string; delta: number; reason: "merma" | "robo" | "dano" | "conteo_fisico" | "error_captura" | "regularizacion" | "otro"; notes?: string }) => Promise<void>;
   warehouseOptions: Array<{ id: string; name: string }>;
   productOptions: Array<{ id: string; name: string }>;
 }) {
   const [productSearch, setProductSearch] = useState("");
-  const [form, setForm] = useState({ warehouse_id: "", product_id: "", delta: "0", notes: "" });
+  const [form, setForm] = useState({ warehouse_id: "", product_id: "", delta: "0", reason: "regularizacion", notes: "" });
 
   useEffect(() => {
     if (!form.warehouse_id && warehouseOptions[0]?.id) {
@@ -60,14 +60,32 @@ export function AdjustInventoryModal({ onSubmit, warehouseOptions, productOption
             </Select>
           </div>
 
-          <div className="space-y-1"><Label>Delta</Label><Input type="number" value={form.delta} onFocus={(e) => e.target.select()} onChange={(e) => setForm((f) => ({ ...f, delta: e.target.value }))} /></div>
-          <div className="space-y-1"><Label>Notas</Label><Input value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} /></div>
+          <div className="space-y-1"><Label>Ajuste de cantidad</Label><Input type="number" value={form.delta} onFocus={(e) => e.target.select()} onChange={(e) => setForm((f) => ({ ...f, delta: e.target.value }))} /></div>
+          <div className="space-y-1">
+            <Label>Motivo del ajuste</Label>
+            <Select value={form.reason} onValueChange={(v) => setForm((f) => ({ ...f, reason: v }))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="merma">Merma</SelectItem>
+                <SelectItem value="robo">Robo</SelectItem>
+                <SelectItem value="dano">Daño</SelectItem>
+                <SelectItem value="conteo_fisico">Conteo físico</SelectItem>
+                <SelectItem value="error_captura">Error de captura</SelectItem>
+                <SelectItem value="regularizacion">Regularización</SelectItem>
+                <SelectItem value="otro">Otro</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1"><Label>Notas</Label><Input value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} placeholder="Describe brevemente por qué haces este ajuste" /></div>
+          <div className="rounded-md border bg-amber-50 p-3 text-xs text-amber-900">
+            Usa ajuste solo para correcciones extraordinarias. Si lo correcto es una recepción, transferencia o conteo físico, usa ese flujo en lugar de este ajuste manual.
+          </div>
           <Button
             className="w-full"
-            onClick={async () => onSubmit({ warehouse_id: form.warehouse_id, product_id: form.product_id, delta: Number(form.delta), notes: form.notes || undefined })}
-            disabled={!form.product_id || !form.warehouse_id}
+            onClick={async () => onSubmit({ warehouse_id: form.warehouse_id, product_id: form.product_id, delta: Number(form.delta), reason: form.reason as any, notes: form.notes || undefined })}
+            disabled={!form.product_id || !form.warehouse_id || !form.notes.trim()}
           >
-            Aplicar
+            Aplicar ajuste
           </Button>
         </div>
       </DialogContent>

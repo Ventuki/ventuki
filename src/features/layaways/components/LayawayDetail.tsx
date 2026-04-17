@@ -144,6 +144,12 @@ export function LayawayDetail() {
                   </span>
                 </p>
               )}
+              {layaway.status === "active" && (
+                <div className="rounded-md border bg-amber-50 p-3 text-sm text-amber-950 space-y-1">
+                  <p><span className="font-medium">Regla operativa:</span> este apartado mantiene mercancía comprometida para el cliente.</p>
+                  <p>Mientras siga activo, ese stock no debe tratarse como disponible para venta libre.</p>
+                </div>
+              )}
               {layaway.notes && (
                 <p className="text-sm text-muted-foreground">Notas: {layaway.notes}</p>
               )}

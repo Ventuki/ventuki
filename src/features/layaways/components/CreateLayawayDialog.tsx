@@ -13,6 +13,8 @@ import { useAuth } from "@/features/auth";
 import { searchCustomers } from "@/features/customers/services/customerService";
 import { searchProducts, type ProductRow } from "@/features/products/services/productService";
 import { formatCurrency } from "../utils";
+
+const MIN_LAYAWAY_DEPOSIT_PERCENT = 20;
 import { toast } from "sonner";
 
 interface CreateLayawayDialogProps {
@@ -113,6 +115,7 @@ export function CreateLayawayDialog({ open, onOpenChange }: CreateLayawayDialogP
   };
 
   const total = lines.reduce((sum, l) => sum + l.quantity * l.unit_price, 0);
+  const minimumDeposit = total * (MIN_LAYAWAY_DEPOSIT_PERCENT / 100);
 
   const handleSubmit = form.handleSubmit(async (values) => {
     if (lines.length === 0) {
@@ -149,6 +152,13 @@ export function CreateLayawayDialog({ open, onOpenChange }: CreateLayawayDialogP
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="rounded-md border bg-amber-50 p-4 text-sm text-amber-950 space-y-1">
+            <p className="font-medium">Política operativa de apartado</p>
+            <p>- Requiere cliente identificado.</p>
+            <p>- Se recomienda un anticipo mínimo del {MIN_LAYAWAY_DEPOSIT_PERCENT}% del total.</p>
+            <p>- La mercancía queda comprometida para este cliente, no vendida definitivamente.</p>
+            <p>- Define una fecha límite para facilitar seguimiento y cancelación oportuna.</p>
+          </div>
           {/* Customer selector */}
           <div className="space-y-2">
             <Label>Cliente *</Label>
@@ -297,6 +307,14 @@ export function CreateLayawayDialog({ open, onOpenChange }: CreateLayawayDialogP
                   </tr>
                 </tfoot>
               </table>
+            </div>
+          )}
+
+          {lines.length > 0 && (
+            <div className="rounded-md border bg-muted/30 p-4 text-sm space-y-1">
+              <p><span className="font-medium">Total del apartado:</span> {formatCurrency(total)}</p>
+              <p><span className="font-medium">Anticipo mínimo sugerido:</span> {formatCurrency(minimumDeposit)}</p>
+              <p className="text-muted-foreground">El apartado compromete stock. Si el negocio define anticipo obligatorio, este monto debe respetarse al confirmar la operación.</p>
             </div>
           )}
 

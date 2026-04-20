@@ -1,7 +1,10 @@
 # Sprint 1, siguientes pasos
 
+## Contexto de entrada
+Sprint 0 quedó cerrado como fase de endurecimiento del circuito base.
+
 ## Objetivo inmediato
-Seguir endureciendo el circuito base hasta que el sistema no aparente estar listo cuando todavía le falten precondiciones operativas reales.
+Avanzar desde una base ya operable hacia validación integrada real, mayor solidez funcional y reducción de deuda visible.
 
 ## Prioridad 1
 ### POS, precondiciones operativas

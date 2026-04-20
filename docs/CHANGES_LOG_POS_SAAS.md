@@ -2,6 +2,11 @@
 
 ## 2026-04-20
 
+### Cierre de Sprint 0
+- Se da por cerrada la fase de endurecimiento del circuito base.
+- El proyecto queda con una base más coherente entre onboarding, contexto, dashboard, caja y POS.
+- La continuidad hacia Sprint 1 ya quedó documentada.
+
 ### Caja
 
 #### Cambios aplicados

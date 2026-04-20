@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -89,6 +89,10 @@ export function ProductForm({
     reset(initialValues);
   }, [initialValues, reset]);
 
+  const manageStock = watch("manage_stock");
+  const selectedWarehouseId = watch("warehouse_id");
+  const initialStock = watch("initial_stock");
+
   // Pre-seleccionar la primera lista de precios si no hay una y es un nuevo producto
   useEffect(() => {
     const currentPriceList = watch("price_list_id");
@@ -96,6 +100,25 @@ export function ProductForm({
       setValue("price_list_id", priceLists[0].id);
     }
   }, [priceLists, watch, setValue, initialValues.id]);
+
+  useEffect(() => {
+    if (!manageStock) {
+      setValue("warehouse_id", "");
+      setValue("initial_stock", 0);
+      return;
+    }
+
+    if (!selectedWarehouseId && warehouses.length > 0 && !initialValues.id) {
+      setValue("warehouse_id", warehouses[0].id);
+    }
+  }, [manageStock, selectedWarehouseId, warehouses, setValue, initialValues.id]);
+
+  const stockMessage = useMemo(() => {
+    if (!manageStock) return "Este producto se guardará sin movimiento inicial de inventario.";
+    if (!selectedWarehouseId) return "Selecciona un almacén para registrar stock inicial.";
+    if (Number(initialStock || 0) <= 0) return "El producto quedará ligado a inventario, pero sin existencias iniciales.";
+    return "Se registrará stock inicial en el almacén seleccionado al crear el producto.";
+  }, [manageStock, selectedWarehouseId, initialStock]);
 
   return (
     <Card className="pos-shadow-sm h-fit">
@@ -203,10 +226,10 @@ export function ProductForm({
                 <div className="flex items-center space-x-2 py-1 border-t mt-1 pt-3">
                   <Checkbox 
                     id="manage_stock" 
-                    checked={watch("manage_stock")} 
+                    checked={manageStock} 
                     onCheckedChange={(checked) => setValue("manage_stock", !!checked)} 
                   />
-                  <Label htmlFor="manage_stock" className="cursor-pointer">Gestionar Inventario (Cargar stock inicial)</Label>
+                  <Label htmlFor="manage_stock" className="cursor-pointer">Gestionar inventario para este producto</Label>
                 </div>
 
                 <div className="flex items-center space-x-2 py-1">
@@ -223,8 +246,17 @@ export function ProductForm({
                   </p>
                 )}
 
-                {watch("manage_stock") && (
-                  <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                {manageStock && (
+                  <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
+                      {stockMessage}
+                    </div>
+                    {manageStock && selectedWarehouseId && Number(initialStock || 0) > 0 && (
+                      <div className="rounded-md border border-success/30 bg-success/5 p-3 text-xs text-success">
+                        Al crear el producto, el stock inicial debería reflejarse después en Inventario para el almacén seleccionado.
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Almacén *</Label>
                       <Select 
@@ -239,9 +271,10 @@ export function ProductForm({
                       {errors.warehouse_id && <p className="text-xs text-destructive">Requerido si gestiona stock</p>}
                     </div>
                     <div className="space-y-2">
-                      <Label>Stock Inicial *</Label>
+                      <Label>Stock inicial</Label>
                       <Input type="number" step="1" {...register("initial_stock")} onFocus={(e) => e.target.select()} />
                       {errors.initial_stock && <p className="text-xs text-destructive">{errors.initial_stock.message}</p>}
+                    </div>
                     </div>
                   </div>
                 )}

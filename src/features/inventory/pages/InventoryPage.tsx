@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AppLayout } from "@/components/layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -28,7 +29,7 @@ export default function InventoryPage() {
   const [warehouseOptions, setWarehouseOptions] = useState<Array<{ id: string; name: string }>>([]);
   const [productOptions, setProductOptions] = useState<Array<{ id: string; name: string }>>([]);
 
-  const { rows, error } = useInventory(search, warehouseId);
+  const { rows, error, loading, refresh } = useInventory(search, warehouseId);
   const { rows: kardex } = useKardex(warehouseId === "all" ? undefined : warehouseId);
   const summary = useStock(rows);
   const alerts = useStockAlerts(rows);
@@ -109,11 +110,18 @@ export default function InventoryPage() {
         <div className="grid gap-6 lg:grid-cols-3">
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle>Stock por sucursal/almacén</CardTitle>
-              <CardDescription>{summary.totalRows} registros · {summary.totalQty.toFixed(3)} piezas totales</CardDescription>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <CardTitle>Stock por sucursal/almacén</CardTitle>
+                  <CardDescription>{summary.totalRows} registros · {summary.totalQty.toFixed(3)} piezas totales</CardDescription>
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={refresh} disabled={loading}>
+                  {loading ? "Actualizando..." : "Actualizar"}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              <InventoryTable rows={rows} />
+              <InventoryTable rows={rows} loading={loading} />
             </CardContent>
           </Card>
 

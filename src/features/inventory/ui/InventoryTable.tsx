@@ -1,7 +1,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { StockRecord } from "../types/inventory.types";
 
-export function InventoryTable({ rows }: { rows: StockRecord[] }) {
+export function InventoryTable({ rows, loading }: { rows: StockRecord[]; loading?: boolean }) {
   return (
     <Table>
       <TableHeader>
@@ -17,7 +17,15 @@ export function InventoryTable({ rows }: { rows: StockRecord[] }) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {rows.map((row) => (
+        {loading ? (
+          <TableRow>
+            <TableCell colSpan={8} className="text-center text-muted-foreground">Actualizando inventario...</TableCell>
+          </TableRow>
+        ) : rows.length === 0 ? (
+          <TableRow>
+            <TableCell colSpan={8} className="text-center text-muted-foreground">No hay existencias para los filtros actuales.</TableCell>
+          </TableRow>
+        ) : rows.map((row) => (
           <TableRow key={row.id}>
             <TableCell className="font-medium">{row.product_name || row.product_id}</TableCell>
             <TableCell>{row.product_sku || "-"}</TableCell>

@@ -1,7 +1,15 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export interface SimpleOption { id: string; name: string }
-export interface ProductRow { id: string; sku: string; name: string; is_active: boolean }
+export interface ProductRow {
+  id: string;
+  sku: string;
+  name: string;
+  is_active: boolean;
+  has_barcode?: boolean;
+  has_price?: boolean;
+  sale_ready?: boolean;
+}
 
 export interface ProductPayload {
   company_id: string;
@@ -47,7 +55,7 @@ export async function searchProducts(companyId: string, search: string) {
 
   let query = supabase
     .from("products" as any)
-    .select("id,sku,name,is_active")
+    .select("id,sku,name,is_active,product_barcodes!left(barcode),product_prices!left(price)")
     .eq("company_id", companyId)
     .order("created_at", { ascending: false });
 
@@ -61,7 +69,25 @@ export async function searchProducts(companyId: string, search: string) {
   }
 
   const { data, error } = await query;
-  return { data: (data || []) as unknown as ProductRow[], error };
+
+  const mapped = ((data || []) as any[]).map((row) => {
+    const hasBarcode = Array.isArray(row.product_barcodes) ? row.product_barcodes.length > 0 : Boolean(row.product_barcodes?.barcode);
+    const hasPrice = Array.isArray(row.product_prices)
+      ? row.product_prices.some((priceRow: any) => Number(priceRow?.price || 0) > 0)
+      : Number(row.product_prices?.price || 0) > 0;
+
+    return {
+      id: row.id,
+      sku: row.sku,
+      name: row.name,
+      is_active: Boolean(row.is_active),
+      has_barcode: hasBarcode,
+      has_price: hasPrice,
+      sale_ready: Boolean(row.is_active) && hasPrice,
+    };
+  }) as ProductRow[];
+
+  return { data: mapped, error };
 }
 
 export async function validateProductUniqueness(companyId: string, sku: string, barcode?: string, currentId?: string) {

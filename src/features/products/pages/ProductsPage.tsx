@@ -1,4 +1,7 @@
-﻿import { useState } from "react";
+﻿import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout";
 import { toast } from "sonner";
 import { useSaveProduct } from "../hooks/useSaveProduct";
@@ -8,6 +11,7 @@ import { ProductForm, ProductFormValues, emptyFormValues } from "../components/P
 import { ProductList } from "../components/ProductList";
 
 export default function ProductsPage() {
+  const navigate = useNavigate();
   const {
     search,
     setSearch,
@@ -23,6 +27,13 @@ export default function ProductsPage() {
     getProductDetails,
   } = useManageProducts();
   const { branch } = useAuth();
+  const [lastSavedProductName, setLastSavedProductName] = useState("");
+  const [lastSavedProductReady, setLastSavedProductReady] = useState(false);
+
+  const defaultWarehouseName = useMemo(
+    () => warehouses.find((w) => w.branch_id === branch?.id)?.name || warehouses[0]?.name || "el almacén disponible",
+    [warehouses, branch?.id],
+  );
 
   const { save, saving } = useSaveProduct();
   const [initialValues, setInitialValues] = useState<ProductFormValues>(emptyFormValues);
@@ -31,7 +42,9 @@ export default function ProductsPage() {
     const defaultWarehouseId = warehouses.find(w => w.branch_id === branch?.id)?.id || warehouses[0]?.id || "";
     setInitialValues({
       ...emptyFormValues,
-      warehouse_id: defaultWarehouseId
+      warehouse_id: defaultWarehouseId,
+      manage_stock: false,
+      initial_stock: 0,
     });
   };
 
@@ -84,6 +97,8 @@ export default function ProductsPage() {
         warehouse_id: data.warehouse_id,
       });
 
+      setLastSavedProductName(data.name.trim());
+      setLastSavedProductReady(Boolean(data.is_active) && Number(data.price || 0) > 0);
       toast.success(data.id ? "Producto actualizado" : "Producto creado");
       handleClear();
       refreshProducts();
@@ -99,6 +114,29 @@ export default function ProductsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Productos</h1>
           <p className="text-muted-foreground">CatÃ¡logo de productos con SKU, cÃ³digo de barras y precio.</p>
         </div>
+
+        {lastSavedProductName && (
+          <Card className="border-success/30 bg-success/5">
+            <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="font-medium">Producto guardado: {lastSavedProductName}</p>
+                <p className="text-sm text-muted-foreground">
+                  {lastSavedProductReady
+                    ? "Quedó con base mínima para validarlo en POS. Si maneja stock, conviene revisar Inventario también."
+                    : "Aún puede faltarle algo para venta en POS, normalmente precio operativo o activación."}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={() => navigate("/inventory")}>
+                  Ver inventario
+                </Button>
+                <Button type="button" variant="outline" onClick={() => navigate("/pos")}>
+                  Ir al POS
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid gap-6 lg:grid-cols-2 items-start opacity-0 animate-[fade-in_0.5s_ease-out_0.2s_forwards]">
           <ProductForm

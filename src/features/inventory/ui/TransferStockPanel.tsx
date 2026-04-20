@@ -22,6 +22,11 @@ export function TransferStockPanel({
     return productOptions.filter((p) => p.name.toLowerCase().includes(term));
   }, [productOptions, productSearch]);
 
+  const selectedOrigin = warehouseOptions.find((warehouse) => warehouse.id === form.from_warehouse);
+  const selectedDestination = warehouseOptions.find((warehouse) => warehouse.id === form.to_warehouse);
+  const selectedProduct = productOptions.find((product) => product.id === form.product_id);
+  const transferReady = Boolean(form.from_warehouse && form.to_warehouse && form.product_id && Number(form.qty) > 0);
+
   return (
     <div className="space-y-2 rounded-md border p-4">
       <h3 className="font-semibold">Transferencias internas</h3>
@@ -70,6 +75,37 @@ export function TransferStockPanel({
         <div className="space-y-1"><Label>Cantidad</Label><Input type="number" min="0.001" step="0.001" value={form.qty} onFocus={(e) => e.target.select()} onChange={(e) => setForm((f) => ({ ...f, qty: e.target.value }))} /></div>
       </div>
       <div className="space-y-1"><Label>Notas</Label><Input value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} /></div>
+
+      <div className="rounded-md border bg-muted/30 p-3 text-sm">
+        <p className="font-medium">Resumen previo de transferencia</p>
+        {transferReady ? (
+          <div className="mt-2 grid gap-2 md:grid-cols-2">
+            <div>
+              <p className="text-muted-foreground">Origen</p>
+              <p className="font-medium">{selectedOrigin?.name || "Sin seleccionar"}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Destino</p>
+              <p className="font-medium">{selectedDestination?.name || "Sin seleccionar"}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Producto</p>
+              <p className="font-medium">{selectedProduct?.name || "Sin seleccionar"}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Cantidad</p>
+              <p className="font-medium">{Number(form.qty).toFixed(3)}</p>
+            </div>
+          </div>
+        ) : (
+          <p className="mt-1 text-xs text-muted-foreground">Completa origen, destino, producto y cantidad para revisar la transferencia antes de ejecutarla.</p>
+        )}
+
+        {form.from_warehouse && form.to_warehouse && form.from_warehouse === form.to_warehouse && (
+          <p className="mt-2 text-xs text-destructive">Origen y destino no pueden ser iguales.</p>
+        )}
+      </div>
+
       <Button
         onClick={async () => onTransfer({ ...form, qty: Number(form.qty), notes: form.notes || undefined })}
         disabled={!form.from_warehouse || !form.to_warehouse || !form.product_id || Number(form.qty) <= 0}

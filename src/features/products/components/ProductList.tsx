@@ -41,6 +41,7 @@ export function ProductList({
                 <TableHead>SKU</TableHead>
                 <TableHead>Nombre</TableHead>
                 <TableHead>Estatus</TableHead>
+                <TableHead>Operatividad</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
@@ -52,6 +53,7 @@ export function ProductList({
                     <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-40" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-28" /></TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Skeleton className="h-8 w-16" />
@@ -72,6 +74,19 @@ export function ProductList({
                         {p.is_active ? "Activo" : "Inactivo"}
                       </span>
                     </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${p.sale_ready ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}`}>
+                          {p.sale_ready ? 'Listo para POS' : 'Incompleto para POS'}
+                        </span>
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${p.has_price ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}`}>
+                          {p.has_price ? 'Con precio' : 'Sin precio'}
+                        </span>
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${p.has_barcode ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                          {p.has_barcode ? 'Con barcode' : 'Sin barcode'}
+                        </span>
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button size="sm" variant="outline" onClick={() => onEdit(p.id)}>
@@ -86,7 +101,7 @@ export function ProductList({
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                     No se encontraron productos.
                   </TableCell>
                 </TableRow>

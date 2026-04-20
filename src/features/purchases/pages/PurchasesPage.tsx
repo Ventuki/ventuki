@@ -50,6 +50,8 @@ export default function PurchasesPage() {
   const [items, setItems] = useState<PurchaseItemDraft[]>([{ ...itemBase }]);
   const [saving, setSaving] = useState(false);
   const [suggestedSupplierName, setSuggestedSupplierName] = useState<string | null>(null);
+  const [loadedFromReorder, setLoadedFromReorder] = useState(false);
+  const [loadedReorderCount, setLoadedReorderCount] = useState(0);
 
   const [selectedPurchaseId, setSelectedPurchaseId] = useState("");
   const [receiptItems, setReceiptItems] = useState<Array<any>>([]);
@@ -58,6 +60,23 @@ export default function PurchasesPage() {
 
   const canCreate = useMemo(() => branchId && supplierId && items.every((i) => i.product_id && i.quantity > 0), [branchId, supplierId, items]);
   const selectedPurchase = useMemo(() => purchases.find((p) => p.id === selectedPurchaseId), [purchases, selectedPurchaseId]);
+
+  const receiptSummary = useMemo(() => {
+    const totalLines = receiptItems.length;
+    const linesWithPending = receiptItems.filter((row) => Number(row.quantity) - Number(row.received_qty) > 0).length;
+    const linesCompleted = receiptItems.filter((row) => Number(row.quantity) - Number(row.received_qty) <= 0).length;
+    const totalOrdered = receiptItems.reduce((acc, row) => acc + Number(row.quantity || 0), 0);
+    const totalReceived = receiptItems.reduce((acc, row) => acc + Number(row.received_qty || 0), 0);
+    const totalPending = Math.max(0, totalOrdered - totalReceived);
+    const rowsToReceive = receiptItems.filter((row) => Number(row.receive_now) > 0);
+    const incidences = rowsToReceive.filter((row) => row.incidence_type && row.incidence_type !== "ok");
+    const incidenceCounts = incidences.reduce((acc, row) => {
+      const key = row.incidence_type as Exclude<IncidenceType, "ok">;
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {} as Record<Exclude<IncidenceType, "ok">, number>);
+    return { totalLines, linesWithPending, linesCompleted, totalOrdered, totalReceived, totalPending, rowsToReceive, incidences, incidenceCounts };
+  }, [receiptItems]);
 
   const loadMeta = async () => {
     if (!company?.id) return;
@@ -107,6 +126,8 @@ export default function PurchasesPage() {
             unit_cost: Number(item.unit_cost) || 0,
             tax_rate: Number(item.tax_rate) || 0,
           })));
+          setLoadedFromReorder(true);
+          setLoadedReorderCount(reorderItems.length);
 
           if (company?.id) {
             const suggestion = await suggestSupplierForProducts(company.id, reorderItems.map((item) => item.product_id));
@@ -291,6 +312,22 @@ export default function PurchasesPage() {
           <p className="text-muted-foreground">Fase B: draft → confirmed → recepción parcial/total → cancel/reopen.</p>
         </div>
 
+        {loadedFromReorder && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="flex flex-col gap-2 p-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="font-medium">Recompra cargada desde Inventario</p>
+                <p className="text-sm text-muted-foreground">
+                  Se cargaron {loadedReorderCount} producto(s) al borrador de compra. Revisa proveedor, costos y cantidades antes de confirmar.
+                </p>
+              </div>
+              {suggestedSupplierName && (
+                <p className="text-sm text-muted-foreground">Proveedor sugerido: <span className="font-medium text-foreground">{suggestedSupplierName}</span></p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid gap-6 xl:grid-cols-2">
           <Card>
             <CardHeader>
@@ -398,6 +435,80 @@ export default function PurchasesPage() {
                 <Button variant="destructive" onClick={onCancelPurchase} disabled={!selectedPurchaseId || !selectedPurchase || !canTransitionPurchase(selectedPurchase.status as PurchaseStatus, "cancelled")}>Cancelar</Button>
                 <Button variant="secondary" onClick={onReopenPurchase} disabled={!selectedPurchaseId || !selectedPurchase || !canTransitionPurchase(selectedPurchase.status as PurchaseStatus, "draft")}>Reabrir</Button>
               </div>
+
+              {selectedPurchase && (
+                <div className="rounded-md border bg-muted/30 p-3 text-sm">
+                  <p className="font-medium">Estado actual de la compra</p>
+                  <div className="mt-2 grid gap-2 md:grid-cols-3">
+                    <div>
+                      <p className="text-muted-foreground">Estatus</p>
+                      <p className="font-medium capitalize">{selectedPurchase.status}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Monto</p>
+                      <p className="font-medium">${Number(selectedPurchase.total || 0).toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Folio</p>
+                      <p className="font-medium">{selectedPurchase.folio || selectedPurchase.id.slice(0, 8)}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedPurchaseId && receiptItems.length > 0 && (
+                <div className="space-y-3 rounded-md border bg-primary/5 p-3 text-sm">
+                  <div>
+                    <p className="font-medium">Resumen de recepción</p>
+                    <div className="mt-2 grid gap-2 md:grid-cols-3">
+                      <div>
+                        <p className="text-muted-foreground">Partidas completas</p>
+                        <p className="font-medium">{receiptSummary.linesCompleted} / {receiptSummary.totalLines}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Recibido acumulado</p>
+                        <p className="font-medium">{receiptSummary.totalReceived.toFixed(3)}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Pendiente acumulado</p>
+                        <p className="font-medium">{receiptSummary.totalPending.toFixed(3)}</p>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {receiptSummary.linesWithPending > 0
+                        ? "La compra sigue con partidas pendientes; la recepción puede quedar parcial."
+                        : "Todas las partidas están completas; la compra debería quedar lista como recibida."}
+                    </p>
+                  </div>
+
+                  <div className="rounded-md border bg-background/80 p-3">
+                    <p className="font-medium">Incidencias preparadas para esta recepción</p>
+                    {receiptSummary.rowsToReceive.length === 0 ? (
+                      <p className="mt-1 text-xs text-muted-foreground">Aún no capturas cantidades para esta recepción.</p>
+                    ) : receiptSummary.incidences.length === 0 ? (
+                      <p className="mt-1 text-xs text-muted-foreground">Las partidas capturadas van sin incidencias.</p>
+                    ) : (
+                      <div className="mt-2 space-y-2">
+                        <div className="flex flex-wrap gap-2 text-xs">
+                          {receiptSummary.incidenceCounts.faltante ? <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-800">Faltantes: {receiptSummary.incidenceCounts.faltante}</span> : null}
+                          {receiptSummary.incidenceCounts.dano ? <span className="rounded-full bg-red-100 px-2 py-1 text-red-800">Daños: {receiptSummary.incidenceCounts.dano}</span> : null}
+                          {receiptSummary.incidenceCounts.sobrante ? <span className="rounded-full bg-blue-100 px-2 py-1 text-blue-800">Sobrantes: {receiptSummary.incidenceCounts.sobrante}</span> : null}
+                        </div>
+                        <div className="space-y-1 text-xs text-muted-foreground">
+                          {receiptSummary.incidences.map((row) => (
+                            <div key={row.id} className="rounded border bg-muted/40 px-2 py-1">
+                              <span className="font-medium text-foreground">{row.products?.name || row.products?.sku || "Producto"}</span>
+                              {": "}
+                              <span className="capitalize">{row.incidence_type}</span>
+                              {row.incidence_notes ? `, ${row.incidence_notes}` : ""}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <Table>
                 <TableHeader>

@@ -40,6 +40,19 @@ export function PhysicalCountPanel({ companyId, branchId, userId, warehouseOptio
   }>>([]);
   const [recent, setRecent] = useState<Array<{ id: string; folio: string; status: string; created_at: string }>>([]);
 
+  const previewSummary = useCallback(() => {
+    const increases = previewItems.filter((item) => Number(item.difference_qty || 0) > 0);
+    const decreases = previewItems.filter((item) => Number(item.difference_qty || 0) < 0);
+    const unchanged = previewItems.filter((item) => Number(item.difference_qty || 0) === 0);
+    return {
+      increases,
+      decreases,
+      unchanged,
+      increaseTotal: increases.reduce((acc, item) => acc + Number(item.difference_qty || 0), 0),
+      decreaseTotal: decreases.reduce((acc, item) => acc + Math.abs(Number(item.difference_qty || 0)), 0),
+    };
+  }, [previewItems]);
+
   const loadRecent = useCallback(async () => {
     if (!companyId) return;
     const { data, error } = await listRecentPhysicalCounts(companyId, warehouseId || undefined);
@@ -250,24 +263,57 @@ export function PhysicalCountPanel({ companyId, branchId, userId, warehouseOptio
       </div>
 
       {previewCountId && (
-        <div className="space-y-2 border-t pt-3">
+        <div className="space-y-3 border-t pt-3">
           <Label>Previa de diferencias del conteo</Label>
           {previewItems.length === 0 ? (
             <p className="text-sm text-muted-foreground">Este conteo no tiene partidas.</p>
           ) : (
-            <div className="space-y-1 text-sm">
-              {previewItems.map((item) => (
-                <div key={item.id} className="grid grid-cols-12 gap-2 rounded bg-muted/40 px-2 py-1">
-                  <div className="col-span-6 font-medium">
-                    {item.products?.name || item.id}
-                    {item.products?.sku ? <span className="ml-1 text-xs text-muted-foreground">({item.products.sku})</span> : null}
-                  </div>
-                  <div className="col-span-2 text-right">Sist: {Number(item.system_qty || 0).toFixed(3)}</div>
-                  <div className="col-span-2 text-right">Cont: {Number(item.counted_qty || 0).toFixed(3)}</div>
-                  <div className="col-span-2 text-right font-semibold">Δ {Number(item.difference_qty || 0).toFixed(3)}</div>
+            <>
+              <div className="grid gap-2 md:grid-cols-4 text-sm">
+                <div className="rounded border bg-emerald-50 px-3 py-2">
+                  <p className="text-muted-foreground">Partidas que suben</p>
+                  <p className="font-semibold text-emerald-700">{previewSummary().increases.length}</p>
                 </div>
-              ))}
-            </div>
+                <div className="rounded border bg-red-50 px-3 py-2">
+                  <p className="text-muted-foreground">Partidas que bajan</p>
+                  <p className="font-semibold text-red-700">{previewSummary().decreases.length}</p>
+                </div>
+                <div className="rounded border bg-slate-50 px-3 py-2">
+                  <p className="text-muted-foreground">Sin cambio</p>
+                  <p className="font-semibold">{previewSummary().unchanged.length}</p>
+                </div>
+                <div className="rounded border bg-primary/5 px-3 py-2">
+                  <p className="text-muted-foreground">Impacto neto visible</p>
+                  <p className="font-semibold">+{previewSummary().increaseTotal.toFixed(3)} / -{previewSummary().decreaseTotal.toFixed(3)}</p>
+                </div>
+              </div>
+
+              <div className="space-y-1 text-sm">
+                {previewItems.map((item) => {
+                  const diff = Number(item.difference_qty || 0);
+                  const diffTone = diff > 0
+                    ? "text-emerald-700"
+                    : diff < 0
+                      ? "text-red-700"
+                      : "text-muted-foreground";
+                  const diffLabel = diff > 0 ? "Sube" : diff < 0 ? "Baja" : "Sin cambio";
+
+                  return (
+                    <div key={item.id} className="grid grid-cols-12 gap-2 rounded bg-muted/40 px-2 py-1">
+                      <div className="col-span-5 font-medium">
+                        {item.products?.name || item.id}
+                        {item.products?.sku ? <span className="ml-1 text-xs text-muted-foreground">({item.products.sku})</span> : null}
+                      </div>
+                      <div className="col-span-2 text-right">Sist: {Number(item.system_qty || 0).toFixed(3)}</div>
+                      <div className="col-span-2 text-right">Cont: {Number(item.counted_qty || 0).toFixed(3)}</div>
+                      <div className={`col-span-3 text-right font-semibold ${diffTone}`}>
+                        {diffLabel} · Δ {diff.toFixed(3)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
           <div className="flex gap-2">
             <Button type="button" onClick={() => onPost(previewCountId)} disabled={postingId === previewCountId}>

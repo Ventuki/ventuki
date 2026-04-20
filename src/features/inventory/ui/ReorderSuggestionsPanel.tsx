@@ -35,7 +35,7 @@ export function ReorderSuggestionsPanel({ alerts, rows }: { alerts: StockAlert[]
       items: payload,
       created_at: new Date().toISOString(),
     }));
-    toast.success("Lista de recompra preparada. Ábrela en Compras para completar proveedor, costos y revisar agrupación sugerida.");
+    toast.success(`Lista de recompra preparada con ${payload.length} producto(s). Ábrela en Compras para completar proveedor, costos y revisar agrupación sugerida.`);
   };
 
   return (

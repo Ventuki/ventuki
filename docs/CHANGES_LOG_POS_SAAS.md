@@ -183,3 +183,176 @@ Sigue pendiente la decisión mayor sobre cuál onboarding debe consolidarse como
 - Se elimina la ambigüedad sobre qué onboarding usar.
 - Baja el riesgo de mantener un flujo incompleto o roto.
 - El proyecto queda con un solo punto real de entrada para setup inicial.
+
+### Sprint 1, productos e inventario inicial
+
+#### Cambios aplicados
+- Se aclaró el flujo de creación de producto cuando se activa gestión de inventario.
+- El formulario ahora explica mejor si se creará stock inicial, si falta almacén o si el producto quedará sin existencias iniciales.
+- Se limpió mejor el estado inicial al resetear el formulario.
+
+#### Archivos tocados
+- `src/features/products/components/ProductForm.tsx`
+- `src/features/products/pages/ProductsPage.tsx`
+
+#### Impacto esperado
+- Menos ambigüedad al crear productos con inventario.
+- Mejor correspondencia entre lo que el usuario ve y lo que realmente se registra en inventario.
+- Más facilidad para validar físicamente este flujo en app.
+
+### Sprint 1, verificabilidad de inventario
+
+#### Cambios aplicados
+- El hook de inventario ahora soporta refresco real de datos.
+- La pantalla de inventario tiene botón explícito de actualización.
+- La tabla ahora comunica mejor estados de carga y vacíos.
+
+#### Archivos tocados
+- `src/features/inventory/hooks/useInventory.ts`
+- `src/features/inventory/pages/InventoryPage.tsx`
+- `src/features/inventory/ui/InventoryTable.tsx`
+
+#### Impacto esperado
+- Más confianza al validar si un movimiento ya impactó inventario.
+- Mejor verificabilidad física del stock inicial y otros cambios.
+- Menos ambigüedad al revisar resultados en UI.
+
+### Sprint 1, continuidad entre productos, inventario y POS
+
+#### Cambios aplicados
+- La pantalla de productos ahora deja una señal visible del último producto guardado.
+- Se añadieron accesos rápidos para verificar el resultado en Inventario o POS.
+- El formulario explica mejor que el stock inicial debe reflejarse después en Inventario.
+
+#### Archivos tocados
+- `src/features/products/pages/ProductsPage.tsx`
+- `src/features/products/components/ProductForm.tsx`
+
+#### Impacto esperado
+- Mejor continuidad entre creación de producto y validación operativa.
+- Menos fricción para comprobar físicamente si el flujo quedó bien.
+- Más claridad para QA manual del circuito producto → inventario → POS.
+
+### Sprint 1, legibilidad del catálogo POS
+
+#### Cambios aplicados
+- El catálogo POS ahora comunica mejor cuando un producto no está listo para vender por falta de precio o stock.
+- Se deshabilita agregar al carrito si el producto no tiene precio operativo.
+- Se mejoró el mensaje de búsqueda vacía para ayudar a verificar productos recién creados.
+
+#### Archivos tocados
+- `src/features/pos/components/POSCatalog.tsx`
+
+#### Impacto esperado
+- Menos confusión al validar productos recién creados en POS.
+- Más claridad sobre por qué un producto no puede venderse todavía.
+- Mejor QA manual del puente producto → inventario → POS.
+
+### Sprint 1, listado de productos más operativo
+
+#### Cambios aplicados
+- El listado de productos ahora muestra señales rápidas de operatividad.
+- Se añadió lectura visible de si el producto tiene precio y barcode.
+- Esto ayuda a detectar más rápido si un producto quedó incompleto para operación.
+
+#### Archivos tocados
+- `src/features/products/services/productService.ts`
+- `src/features/products/components/ProductList.tsx`
+
+#### Impacto esperado
+- Mejor lectura del estado real del catálogo.
+- Menos necesidad de entrar a editar solo para descubrir si faltan piezas básicas.
+- Mejor QA manual del módulo de productos.
+
+### Sprint 1, producto listo para POS
+
+#### Cambios aplicados
+- El listado de productos ahora marca si el artículo quedó listo para POS o incompleto para venta.
+- La confirmación de guardado también comunica mejor si el producto quedó con base mínima para validarse en POS.
+- Se consolidó una lectura más directa entre estado del producto y operatividad de venta.
+
+#### Archivos tocados
+- `src/features/products/services/productService.ts`
+- `src/features/products/components/ProductList.tsx`
+- `src/features/products/pages/ProductsPage.tsx`
+
+#### Impacto esperado
+- Más claridad para saber cuándo un producto ya puede pasar a validación en POS.
+- Menos ambigüedad entre catálogo técnico y producto realmente vendible.
+- Mejor continuidad para QA manual del flujo producto → POS.
+
+### Sprint 1, continuidad entre inventario y compras
+
+#### Cambios aplicados
+- La sugerencia de recompra ahora confirma cuántos productos se enviaron a Compras.
+- Compras muestra una señal visible cuando se cargó un borrador desde Inventario.
+- También se refuerza la lectura del proveedor sugerido y la necesidad de revisar costos/cantidades.
+
+#### Archivos tocados
+- `src/features/inventory/ui/ReorderSuggestionsPanel.tsx`
+- `src/features/purchases/pages/PurchasesPage.tsx`
+
+#### Impacto esperado
+- Mejor continuidad entre reabasto detectado e inicio real de compra.
+- Menos ambigüedad al llegar a Compras desde Inventario.
+- Mejor QA manual del flujo inventario → compras.
+
+### Sprint 1, lectura de recepción de compras
+
+#### Cambios aplicados
+- Recepción de compras ahora muestra mejor el estado global de la compra seleccionada.
+- Se añadió un resumen visible de partidas completas, recibido acumulado y pendiente acumulado.
+- La UI comunica mejor si la compra sigue parcial o si ya debería quedar totalmente recibida.
+
+#### Archivos tocados
+- `src/features/purchases/pages/PurchasesPage.tsx`
+
+#### Impacto esperado
+- Menos necesidad de deducir el estado de recepción fila por fila.
+- Más claridad sobre cuándo la compra ya impactó inventario parcialmente o por completo.
+- Mejor QA manual del flujo compras → inventario.
+
+### Sprint 1, visibilidad de incidencias en recepción
+
+#### Cambios aplicados
+- Se añadió un resumen visible de incidencias para la recepción en curso.
+- La UI agrupa faltantes, daños y sobrantes antes de registrar la entrada.
+- También lista las partidas afectadas para revisión operativa rápida.
+
+#### Archivos tocados
+- `src/features/purchases/pages/PurchasesPage.tsx`
+
+#### Impacto esperado
+- Menos incidencias escondidas entre inputs de captura.
+- Mejor control operativo antes de confirmar una recepción.
+- Mejor QA manual de recepciones parciales con anomalías.
+
+### Sprint 1, lectura de conteo físico antes de publicar
+
+#### Cambios aplicados
+- La previa de conteo físico ahora resume partidas que suben, bajan o no cambian.
+- También muestra impacto neto visible antes de publicar el ajuste.
+- Cada partida comunica mejor si el ajuste sube, baja o queda sin cambio.
+
+#### Archivos tocados
+- `src/features/inventory/ui/PhysicalCountPanel.tsx`
+
+#### Impacto esperado
+- Menos riesgo de publicar ajustes sin entender su efecto.
+- Mejor lectura operativa del conteo físico previo al posteado.
+- Mejor QA manual del flujo conteo → ajuste de inventario.
+
+### Sprint 1, revisión previa de transferencias internas
+
+#### Cambios aplicados
+- Transferencias internas ahora muestran un resumen previo antes de mover stock.
+- La UI deja visible origen, destino, producto y cantidad capturada.
+- También refuerza el error operativo cuando origen y destino son iguales.
+
+#### Archivos tocados
+- `src/features/inventory/ui/TransferStockPanel.tsx`
+
+#### Impacto esperado
+- Menos transferencias ejecutadas con contexto incompleto.
+- Mejor validación manual antes de mover stock entre almacenes.
+- Mejor QA manual del flujo transferencia interna.

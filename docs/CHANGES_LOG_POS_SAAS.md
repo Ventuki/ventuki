@@ -160,3 +160,21 @@ Sigue pendiente la decisión mayor sobre cuál onboarding debe consolidarse como
 - Más claridad para detectar faltantes o sobrantes antes del cierre.
 - Mejor coherencia entre POS, caja y revisión operativa del turno.
 - Menor ambigüedad en el arqueo final.
+
+### Onboarding, unificación de flujo
+
+#### Cambios aplicados
+- Se consolidó un solo onboarding operativo.
+- El onboarding alterno de `src/features/onboarding/` quedó explícitamente descontinuado.
+- La versión alterna ahora redirige al onboarding unificado.
+- Se documentó la decisión para evitar que vuelvan a coexistir dos flujos.
+
+#### Archivos tocados
+- `src/features/onboarding/pages/OnboardingPage.tsx`
+- `src/features/onboarding/hooks/useOnboarding.ts`
+- `docs/ONBOARDING_UNIFICACION.md`
+
+#### Impacto esperado
+- Se elimina la ambigüedad sobre qué onboarding usar.
+- Baja el riesgo de mantener un flujo incompleto o roto.
+- El proyecto queda con un solo punto real de entrada para setup inicial.

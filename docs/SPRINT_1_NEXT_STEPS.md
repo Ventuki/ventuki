@@ -1,5 +1,15 @@
 # Sprint 1, siguientes pasos
 
+## Estado
+Sprint 1 quedó sustancialmente endurecido en UI operativa y verificabilidad manual.
+
+## Cierre alcanzado
+- Productos ahora comunica mejor si el artículo quedó listo para POS.
+- Inventario ganó mejor verificabilidad, refresco manual y lectura de estados.
+- Compras quedó más clara en recompra, recepción parcial/total e incidencias.
+- Conteo físico y transferencias internas ahora muestran mejor su impacto antes de afectar stock.
+- POS comunica mejor sus precondiciones operativas y la cobrabilidad real de los productos.
+
 ## Contexto de entrada
 Sprint 0 quedó cerrado como fase de endurecimiento del circuito base.
 
@@ -27,7 +37,7 @@ Avanzar desde una base ya operable hacia validación integrada real, mayor solid
 - Hacer consolidación solo después de cubrir el circuito base.
 
 ## Recomendación
-Seguir primero con POS y sus precondiciones operativas. Es el punto con mayor riesgo de incoherencia funcional.
+El siguiente paso ya no es solo endurecer UI aislada, sino validar integradamente el circuito y decidir si Sprint 1 se cierra formalmente o si queda una pasada corta de QA real.
 
 ## QA manual corto del bloque ya endurecido
 

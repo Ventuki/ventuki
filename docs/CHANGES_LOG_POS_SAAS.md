@@ -401,3 +401,10 @@ Sigue pendiente la decisión mayor sobre cuál onboarding debe consolidarse como
 - Menos ambigüedad al operar el catálogo del POS.
 - Más claridad sobre si el problema es producto, stock o contexto operativo.
 - Mejor QA manual del puente producto → POS.
+
+### Estado actual de Sprint 1
+
+#### Resumen
+- Sprint 1 quedó fuertemente orientado a verificabilidad física y legibilidad operativa.
+- Se endurecieron productos, inventario, compras y POS con mejoras incrementales, visibles y compilando.
+- El siguiente paso natural ya es cierre formal con QA integrado corto o transición al siguiente bloque.

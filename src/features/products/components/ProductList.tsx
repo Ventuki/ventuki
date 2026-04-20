@@ -93,7 +93,7 @@ export function ProductList({
                           Editar
                         </Button>
                         <Button size="sm" variant="destructive" onClick={() => onDelete(p.id)}>
-                          Eliminar
+                          Eliminar / desactivar
                         </Button>
                       </div>
                     </TableCell>

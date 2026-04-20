@@ -16,6 +16,30 @@ export async function deleteProductUseCase(command: DeleteProductInput) {
   const input = deleteProductSchema.parse(command) as any;
   ensureProductPermission(input.permissions, "product.delete");
 
+  const references = await productRepository.hasOperationalReferences(input.id, input.company_id);
+
+  if (references.hasReferences) {
+    const deactivated = await productRepository.deactivateProduct(input.id, input.company_id);
+    if (deactivated.error) throw deactivated.error;
+
+    await productAuditRepository.record({
+      company_id: input.company_id,
+      actor_user_id: input.actor_user_id,
+      action: "product.deactivated",
+      entity_id: input.id,
+      new_data: {
+        strategy: "deactivated",
+        references: references.detail,
+      },
+    });
+
+    return {
+      ok: true,
+      strategy: "deactivated" as const,
+      message: "Producto desactivado porque ya tiene referencias operativas",
+    };
+  }
+
   const deleted = await productRepository.deleteProduct(input.id, input.company_id);
   if (deleted.error) throw deleted.error;
 
@@ -24,8 +48,15 @@ export async function deleteProductUseCase(command: DeleteProductInput) {
     actor_user_id: input.actor_user_id,
     action: "product.deleted",
     entity_id: input.id,
-    new_data: {},
+    new_data: {
+      strategy: "hard_delete",
+      references: references.detail,
+    },
   });
 
-  return { ok: true };
+  return {
+    ok: true,
+    strategy: "hard_delete" as const,
+    message: "Producto eliminado",
+  };
 }

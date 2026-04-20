@@ -69,18 +69,21 @@ export function useManageProducts() {
       return false;
     }
 
+    const confirmed = window.confirm("Si el producto ya tiene uso en compras, inventario o ventas, se desactivará en lugar de eliminarse. ¿Deseas continuar?");
+    if (!confirmed) return false;
+
     try {
-      await deleteProductUseCase({
+      const result = await deleteProductUseCase({
         id,
         company_id: company.id,
         actor_user_id: user?.id,
         permissions: getProductPermissionsByRole(company.role),
       });
-      toast.success("Producto eliminado");
+      toast.success(result.message || "Producto eliminado");
       loadProducts();
       return true;
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo eliminar el producto");
+      toast.error(error?.message || "No se pudo eliminar o desactivar el producto");
       return false;
     }
   };

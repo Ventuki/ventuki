@@ -13,6 +13,7 @@ import {
   confirmPurchase,
   createDraftPurchase,
   getPendingPurchaseItems,
+  getPurchaseDraftDetail,
   listPurchases,
   loadPurchaseMeta,
   PurchaseItemDraft,
@@ -20,6 +21,7 @@ import {
   receivePurchase,
   reopenPurchase,
   suggestSupplierForProducts,
+  updateDraftPurchase,
 } from "@/features/purchases/services/purchaseService";
 import { purchaseSchema } from "@/features/purchases/validations/purchase.schema";
 import { canTransitionPurchase, type PurchaseStatus } from "@/features/purchases/ux/purchaseFlow";
@@ -52,6 +54,7 @@ export default function PurchasesPage() {
   const [suggestedSupplierName, setSuggestedSupplierName] = useState<string | null>(null);
   const [loadedFromReorder, setLoadedFromReorder] = useState(false);
   const [loadedReorderCount, setLoadedReorderCount] = useState(0);
+  const [editingDraftId, setEditingDraftId] = useState("");
 
   const [selectedPurchaseId, setSelectedPurchaseId] = useState("");
   const [receiptItems, setReceiptItems] = useState<Array<any>>([]);
@@ -168,6 +171,14 @@ export default function PurchasesPage() {
   const addItem = () => setItems((prev) => [...prev, { ...itemBase }]);
   const removeItem = (index: number) => setItems((prev) => prev.filter((_, idx) => idx !== index));
 
+  const resetDraftForm = () => {
+    setEditingDraftId("");
+    setFolio("");
+    setExpectedDate("");
+    setNotes("");
+    setItems([{ ...itemBase }]);
+  };
+
   const onCreatePurchase = async () => {
     if (!company?.id || !branchId || !supplierId || !user?.id) {
       toast.error("Completa empresa, sucursal y proveedor");
@@ -175,7 +186,7 @@ export default function PurchasesPage() {
     }
 
     setSaving(true);
-    const { data, error } = await createDraftPurchase({
+    const payload = {
       companyId: company.id,
       branchId,
       supplierId,
@@ -184,23 +195,48 @@ export default function PurchasesPage() {
       expectedDate,
       notes,
       items: items.filter((i) => i.product_id),
-    });
+    };
+    const { data, error } = editingDraftId
+      ? await updateDraftPurchase({ ...payload, purchaseId: editingDraftId })
+      : await createDraftPurchase(payload);
     setSaving(false);
 
     if (error || !data) {
-      toast.error(error?.message || "No se pudo crear la compra");
+      toast.error(error?.message || (editingDraftId ? "No se pudo actualizar la compra" : "No se pudo crear la compra"));
       return;
     }
 
-    toast.success("Orden de compra creada en draft");
-    setFolio("");
-    setExpectedDate("");
-    setNotes("");
-    setItems([{ ...itemBase }]);
-    if (data?.purchase_id) {
-      setSelectedPurchaseId(data.purchase_id);
+    toast.success(editingDraftId ? "Draft actualizado" : "Orden de compra creada en draft");
+    const nextPurchaseId = editingDraftId || data?.purchase_id;
+    resetDraftForm();
+    if (nextPurchaseId) {
+      setSelectedPurchaseId(nextPurchaseId);
     }
     loadPurchases();
+  };
+
+  const onEditDraft = async () => {
+    if (!company?.id || !selectedPurchaseId) return;
+
+    const { data, error } = await getPurchaseDraftDetail(selectedPurchaseId, company.id);
+    if (error || !data?.purchase) {
+      toast.error(error?.message || "No se pudo cargar el draft");
+      return;
+    }
+
+    setEditingDraftId(data.purchase.id);
+    setBranchId(data.purchase.branch_id);
+    setSupplierId(data.purchase.supplier_id);
+    setFolio(data.purchase.folio || "");
+    setExpectedDate(data.purchase.expected_date || "");
+    setNotes(data.purchase.notes || "");
+    setItems((data.items || []).map((item) => ({
+      product_id: item.product_id,
+      quantity: Number(item.quantity) || 1,
+      unit_cost: Number(item.unit_cost) || 0,
+      tax_rate: Number(item.tax_rate || 0) * 100,
+    })));
+    toast.success("Draft cargado para edición");
   };
 
   const onConfirmPurchase = async () => {
@@ -331,8 +367,8 @@ export default function PurchasesPage() {
         <div className="grid gap-6 xl:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Nueva orden de compra</CardTitle>
-              <CardDescription>Se crea en draft y se confirma después.</CardDescription>
+              <CardTitle>{editingDraftId ? "Editar draft de compra" : "Nueva orden de compra"}</CardTitle>
+              <CardDescription>{editingDraftId ? "Puedes corregir el borrador mientras siga en draft." : "Se crea en draft y se confirma después."}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -400,7 +436,8 @@ export default function PurchasesPage() {
 
               <div className="flex gap-2">
                 <Button variant="outline" onClick={addItem}>Agregar ítem</Button>
-                <Button onClick={onCreatePurchase} disabled={saving || !canCreate}>{saving ? "Guardando..." : "Crear draft"}</Button>
+                <Button onClick={onCreatePurchase} disabled={saving || !canCreate}>{saving ? "Guardando..." : editingDraftId ? "Actualizar draft" : "Crear draft"}</Button>
+                {editingDraftId ? <Button variant="secondary" onClick={resetDraftForm}>Cancelar edición</Button> : null}
               </div>
             </CardContent>
           </Card>
@@ -431,6 +468,7 @@ export default function PurchasesPage() {
               </div>
 
               <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={onEditDraft} disabled={!selectedPurchaseId || !selectedPurchase || selectedPurchase.status !== "draft"}>Editar draft</Button>
                 <Button variant="outline" onClick={onConfirmPurchase} disabled={!selectedPurchaseId || !selectedPurchase || !canTransitionPurchase(selectedPurchase.status as PurchaseStatus, "confirmed")}>Confirmar</Button>
                 <Button variant="destructive" onClick={onCancelPurchase} disabled={!selectedPurchaseId || !selectedPurchase || !canTransitionPurchase(selectedPurchase.status as PurchaseStatus, "cancelled")}>Cancelar</Button>
                 <Button variant="secondary" onClick={onReopenPurchase} disabled={!selectedPurchaseId || !selectedPurchase || !canTransitionPurchase(selectedPurchase.status as PurchaseStatus, "draft")}>Reabrir</Button>

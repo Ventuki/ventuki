@@ -41,3 +41,31 @@ export const receivePurchaseSchema = z.object({
 });
 
 export type ReceivePurchaseInput = z.infer<typeof receivePurchaseSchema>;
+
+export const purchaseTransitionSchema = z.object({
+  company_id: z.string().uuid(),
+  purchase_id: z.string().uuid(),
+});
+
+export type PurchaseTransitionInput = z.infer<typeof purchaseTransitionSchema>;
+
+export const purchaseDraftDetailSchema = z.object({
+  company_id: z.string().uuid(),
+  purchase_id: z.string().uuid(),
+});
+
+export type PurchaseDraftDetailInput = z.infer<typeof purchaseDraftDetailSchema>;
+
+export const updatePurchaseDraftSchema = z.object({
+  company_id: z.string().uuid(),
+  purchase_id: z.string().uuid(),
+  actor_user_id: z.string().uuid(),
+  branch_id: z.string().uuid(),
+  supplier_id: z.string().uuid(),
+  folio: z.string().max(50).optional(),
+  expected_date: z.string().optional(),
+  notes: z.string().max(500).optional(),
+  items: z.array(purchaseItemSchema).min(1, "Debe agregar al menos un producto a la orden"),
+});
+
+export type UpdatePurchaseDraftInput = z.infer<typeof updatePurchaseDraftSchema>;

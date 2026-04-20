@@ -1,5 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createPurchaseUseCase } from "@/features/purchases/application/createPurchase.usecase";
+import { confirmPurchaseUseCase } from "@/features/purchases/application/confirmPurchase.usecase";
+import { cancelPurchaseUseCase } from "@/features/purchases/application/cancelPurchase.usecase";
+import { reopenPurchaseUseCase } from "@/features/purchases/application/reopenPurchase.usecase";
+import { getPurchaseDraftDetailUseCase } from "@/features/purchases/application/getPurchaseDraftDetail.usecase";
+import { updatePurchaseDraftUseCase } from "@/features/purchases/application/updatePurchaseDraft.usecase";
 
 export interface PurchaseRow {
   id: string;
@@ -15,6 +20,26 @@ export interface PurchaseItemDraft {
   quantity: number;
   unit_cost: number;
   tax_rate: number;
+}
+
+export interface PurchaseDraftDetail {
+  purchase: {
+    id: string;
+    branch_id: string;
+    supplier_id: string;
+    folio: string | null;
+    expected_date: string | null;
+    notes: string | null;
+    status: string;
+  };
+  items: Array<{
+    id: string;
+    product_id: string;
+    quantity: number;
+    unit_cost: number;
+    tax_rate: number;
+    received_qty: number;
+  }>;
 }
 
 export async function loadPurchaseMeta(companyId: string) {
@@ -76,31 +101,86 @@ export async function createDraftPurchase(params: {
   }
 }
 
+export async function getPurchaseDraftDetail(purchaseId: string, companyId: string) {
+  try {
+    const result = await getPurchaseDraftDetailUseCase({
+      purchase_id: purchaseId,
+      company_id: companyId,
+    }, ["purchase.view"]);
+
+    return { data: result as PurchaseDraftDetail, error: null };
+  } catch (error: any) {
+    return { data: null, error };
+  }
+}
+
+export async function updateDraftPurchase(params: {
+  purchaseId: string;
+  companyId: string;
+  branchId: string;
+  supplierId: string;
+  userId: string;
+  invoiceNumber?: string;
+  expectedDate?: string;
+  notes?: string;
+  items: PurchaseItemDraft[];
+}) {
+  try {
+    const result = await updatePurchaseDraftUseCase({
+      purchase_id: params.purchaseId,
+      company_id: params.companyId,
+      actor_user_id: params.userId,
+      branch_id: params.branchId,
+      supplier_id: params.supplierId,
+      folio: params.invoiceNumber || undefined,
+      expected_date: params.expectedDate || undefined,
+      notes: params.notes || undefined,
+      items: params.items,
+    }, ["purchase.create"]);
+
+    return { data: result, error: null };
+  } catch (error: any) {
+    return { data: null, error };
+  }
+}
+
 export async function confirmPurchase(purchaseId: string, companyId: string) {
-  return await supabase
-    .from("purchases" as any)
-    .update({ status: "confirmed" } as any)
-    .eq("id", purchaseId)
-    .eq("company_id", companyId)
-    .eq("status", "draft");
+  try {
+    await confirmPurchaseUseCase({
+      purchase_id: purchaseId,
+      company_id: companyId,
+    }, ["purchase.confirm"]);
+
+    return { error: null };
+  } catch (error: any) {
+    return { error };
+  }
 }
 
 export async function cancelPurchase(purchaseId: string, companyId: string) {
-  return await supabase
-    .from("purchases" as any)
-    .update({ status: "cancelled" } as any)
-    .eq("id", purchaseId)
-    .eq("company_id", companyId)
-    .in("status", ["draft", "confirmed", "partial"] as any);
+  try {
+    await cancelPurchaseUseCase({
+      purchase_id: purchaseId,
+      company_id: companyId,
+    }, ["purchase.cancel"]);
+
+    return { error: null };
+  } catch (error: any) {
+    return { error };
+  }
 }
 
 export async function reopenPurchase(purchaseId: string, companyId: string) {
-  return await supabase
-    .from("purchases" as any)
-    .update({ status: "draft" } as any)
-    .eq("id", purchaseId)
-    .eq("company_id", companyId)
-    .eq("status", "cancelled");
+  try {
+    await reopenPurchaseUseCase({
+      purchase_id: purchaseId,
+      company_id: companyId,
+    }, ["purchase.reopen"]);
+
+    return { error: null };
+  } catch (error: any) {
+    return { error };
+  }
 }
 
 export async function getPendingPurchaseItems(purchaseId: string) {

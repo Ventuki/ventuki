@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, DollarSign, Package, ShoppingCart, Users } from "lucide-react";
+import { AlertTriangle, ArrowRight, DollarSign, Package, ShoppingCart, Users, Wallet } from "lucide-react";
+import { Link } from "react-router-dom";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { useDashboardStats } from "./hooks/useDashboardStats";
 
@@ -46,6 +47,77 @@ export default function Index() {
             </AlertDescription>
           </Alert>
         )}
+
+        <div className="grid gap-4 lg:grid-cols-3">
+          <Card className={cn("pos-shadow-sm border-l-4", stats.cashSessionReady ? "border-l-success" : "border-l-destructive")}> 
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Wallet className="h-5 w-5" />
+                Estado operativo
+              </CardTitle>
+              <CardDescription>
+                {stats.cashSessionReady ? "La sucursal tiene caja activa y puede operar ventas." : "La sucursal aún no está lista para cobrar en el POS."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className={cn("rounded-md border p-3 text-sm", stats.cashSessionReady ? "bg-success/5" : "bg-destructive/5")}>
+                <p className="font-medium">{stats.cashSessionReady ? "Caja abierta" : "Caja pendiente"}</p>
+                <p className="text-muted-foreground">
+                  {stats.cashSessionReady ? `Sesión activa: ${stats.activeCashSessionId?.slice(0, 8).toUpperCase()}` : "Abre caja antes de cobrar para evitar ventas incoherentes."}
+                </p>
+              </div>
+
+              {stats.latestCashSessionStatus !== "none" && !stats.cashSessionReady && (
+                <div className="rounded-md border bg-muted/40 p-3 text-sm">
+                  <p className="font-medium">Último cierre de caja</p>
+                  <p className="text-muted-foreground">
+                    {stats.latestCashClosedAt
+                      ? `Cerrada el ${new Date(stats.latestCashClosedAt).toLocaleString("es-MX")}`
+                      : "Cierre reciente disponible"}
+                  </p>
+                  <p className={cn("mt-1 font-medium", stats.latestCashDifference === 0 ? "text-success" : "text-warning")}>
+                    Diferencia final: ${stats.latestCashDifference.toFixed(2)}
+                  </p>
+                </div>
+              )}
+              <div className="flex flex-wrap gap-2">
+                <Button asChild size="sm">
+                  <Link to="/cash-register">Ir a Caja</Link>
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <Link to="/pos">Ir al POS</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="pos-shadow-sm lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Pendientes operativos</CardTitle>
+              <CardDescription>Lo más importante para destrabar la operación del día.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-3 md:grid-cols-2">
+              <div className="rounded-md border p-3">
+                <p className="text-sm font-medium">Caja</p>
+                <p className="text-xs text-muted-foreground">
+                  {stats.cashSessionReady ? "Caja activa y lista para ventas." : "Falta abrir caja para iniciar el circuito de venta."}
+                </p>
+              </div>
+              <div className="rounded-md border p-3">
+                <p className="text-sm font-medium">Inventario</p>
+                <p className="text-xs text-muted-foreground">{stats.totalProducts} productos activos disponibles para revisión operativa.</p>
+              </div>
+              <div className="rounded-md border p-3">
+                <p className="text-sm font-medium">Clientes</p>
+                <p className="text-xs text-muted-foreground">{stats.totalCustomers} clientes activos registrados.</p>
+              </div>
+              <div className="rounded-md border p-3">
+                <p className="text-sm font-medium">Siguiente acción sugerida</p>
+                <p className="text-xs text-muted-foreground">{stats.cashSessionReady ? "Continuar con ventas o revisar inventario." : stats.latestCashSessionStatus === "closed" ? "Revisar resultado del último cierre o volver a abrir caja." : "Abrir caja y validar que el POS quede listo para cobrar."}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {cards.map((stat) => (
@@ -123,8 +195,8 @@ export default function Index() {
 
           <Card className="col-span-3 pos-shadow-sm opacity-0 animate-[fade-in_0.5s_ease-out_0.2s_forwards]">
             <CardHeader>
-              <CardTitle>Avisos Rápidos</CardTitle>
-              <CardDescription>Notificaciones y alertas del sistema</CardDescription>
+              <CardTitle>Accesos rápidos</CardTitle>
+              <CardDescription>Atajos al circuito base del negocio</CardDescription>
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -133,21 +205,31 @@ export default function Index() {
                   <Skeleton className="h-12 w-full" />
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4 rounded-md border p-4 shadow-sm bg-success/5">
-                    <DollarSign className="text-success h-6 w-6 shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium">Caja Operativa</p>
-                      <p className="text-xs text-muted-foreground">Tu sucursal está lista para operar ventas.</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 rounded-md border p-4 shadow-sm bg-warning/5">
-                    <Package className="text-warning h-6 w-6 shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium">Revisa tu inventario</p>
-                      <p className="text-xs text-muted-foreground">{stats.totalProducts} productos activos catalogados.</p>
-                    </div>
-                  </div>
+                <div className="space-y-3">
+                  <Button asChild variant="outline" className="w-full justify-between">
+                    <Link to="/cash-register">
+                      Abrir o revisar caja
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" className="w-full justify-between">
+                    <Link to="/pos">
+                      Ir al Punto de Venta
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" className="w-full justify-between">
+                    <Link to="/inventory">
+                      Revisar inventario
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" className="w-full justify-between">
+                    <Link to="/purchases">
+                      Revisar compras
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
                 </div>
               )}
             </CardContent>

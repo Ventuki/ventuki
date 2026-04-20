@@ -152,7 +152,7 @@ export function AppTopbar() {
             <Button variant="outline" className="hidden min-w-56 justify-between gap-2 lg:flex">
               <div className="truncate text-left">
                 <p className="truncate text-sm font-medium">{company?.name ?? "Sin empresa"}</p>
-                <p className="truncate text-xs text-muted-foreground">{branch?.name ?? "Sin sucursal"}</p>
+                <p className="truncate text-xs text-muted-foreground">{branch?.name ?? "Sin sucursal operativa"}</p>
               </div>
               <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
             </Button>
@@ -211,6 +211,8 @@ export function AppTopbar() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate("/auth/select-company")}>Cambiar contexto</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/cash-register")}>Ir a caja</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/pos")}>Ir al POS</DropdownMenuItem>
             <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
               <LogOut className="mr-2 h-4 w-4" />
               Cerrar sesión

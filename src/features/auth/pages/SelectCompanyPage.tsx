@@ -5,6 +5,7 @@ import { useAuth } from "../AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, MapPin, Plus, LogOut } from "lucide-react";
+import { toast } from "sonner";
 
 interface CompanyOption {
   id: string;
@@ -82,7 +83,13 @@ export default function SelectCompanyPage() {
 
   const finalize = (company: CompanyOption, branch: BranchOption | null) => {
     setCompany({ id: company.id, name: company.name, slug: company.slug, role: company.role });
-    if (branch) setBranch({ id: branch.id, name: branch.name });
+    if (branch) {
+      setBranch({ id: branch.id, name: branch.name });
+      toast.success(`Contexto listo: ${company.name} , ${branch.name}`);
+    } else {
+      setBranch(null);
+      toast.info(`Entraste a ${company.name}. Falta configurar una sucursal operativa.`);
+    }
     navigate("/");
   };
 
@@ -104,7 +111,7 @@ export default function SelectCompanyPage() {
             </div>
             <CardTitle className="text-2xl">Sin empresa asignada</CardTitle>
             <CardDescription>
-              Tu cuenta no está asociada a ninguna empresa. Contacta al administrador o crea una nueva empresa.
+              Tu cuenta no está asociada a ninguna empresa. Contacta al administrador o crea una nueva empresa para continuar hacia el circuito operativo.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">

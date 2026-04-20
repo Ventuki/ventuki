@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { cashRegisterRepository } from "@/features/cash-register/infrastructure/cash.repository";
 import { startOfDay, startOfMonth, addDays, format } from "date-fns";
 import { es } from "date-fns/locale";
 import { PostgrestError } from "@supabase/supabase-js";
@@ -10,6 +11,11 @@ export interface DashboardStats {
   todayTransactions: number;
   totalProducts: number;
   totalCustomers: number;
+  cashSessionReady: boolean;
+  activeCashSessionId: string | null;
+  latestCashSessionStatus: "none" | "open" | "closed";
+  latestCashDifference: number;
+  latestCashClosedAt: string | null;
 }
 
 export interface SalesChartData {
@@ -22,6 +28,11 @@ const EMPTY_STATS: DashboardStats = {
   todayTransactions: 0,
   totalProducts: 0,
   totalCustomers: 0,
+  cashSessionReady: false,
+  activeCashSessionId: null,
+  latestCashSessionStatus: "none",
+  latestCashDifference: 0,
+  latestCashClosedAt: null,
 };
 
 function isMissingTableError(error: PostgrestError | null): boolean {
@@ -34,7 +45,7 @@ function sanitizeAmount(value: number | string | null | undefined): number {
 }
 
 export function useDashboardStats() {
-  const { company, branch } = useAuth();
+  const { company, branch, user } = useAuth();
   const [stats, setStats] = useState<DashboardStats>(EMPTY_STATS);
   const [chartData, setChartData] = useState<SalesChartData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,11 +98,20 @@ export function useDashboardStats() {
         .gte("created_at", monthStart.toISOString())
         .lt("created_at", tomorrowStart.toISOString());
 
-      const [salesTodayRes, productsRes, customersRes, monthSalesRes] = await Promise.all([
+      const cashSessionPromise = user?.id
+        ? cashRegisterRepository.getActiveSession(company.id, branch.id, user.id)
+        : Promise.resolve({ session: null, error: null });
+      const latestSessionPromise = user?.id
+        ? cashRegisterRepository.getLatestSession(company.id, branch.id, user.id)
+        : Promise.resolve({ session: null, totals: null, error: null });
+
+      const [salesTodayRes, productsRes, customersRes, monthSalesRes, cashSessionRes, latestSessionRes] = await Promise.all([
         salesTodayQuery,
         productsQuery,
         customersQuery,
         monthSalesQuery,
+        cashSessionPromise,
+        latestSessionPromise,
       ]);
 
       if (salesTodayRes.error) throw salesTodayRes.error;
@@ -126,11 +146,20 @@ export function useDashboardStats() {
           total,
         }));
 
+      const latestSession = latestSessionRes.session;
+      const latestStatus = !latestSession ? "none" : latestSession.closed_at ? "closed" : "open";
+      const latestDifference = Number(latestSession?.difference || 0);
+
       setStats({
         todaySales,
         todayTransactions,
         totalProducts,
         totalCustomers,
+        cashSessionReady: Boolean(cashSessionRes.session),
+        activeCashSessionId: cashSessionRes.session?.id || null,
+        latestCashSessionStatus: latestStatus,
+        latestCashDifference: latestDifference,
+        latestCashClosedAt: latestSession?.closed_at || null,
       });
       setChartData(chartArray);
     } catch (err) {
@@ -141,7 +170,7 @@ export function useDashboardStats() {
     } finally {
       setLoading(false);
     }
-  }, [company?.id, branch?.id]);
+  }, [company?.id, branch?.id, user?.id]);
 
   useEffect(() => {
     loadStats();

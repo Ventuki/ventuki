@@ -22,6 +22,11 @@ interface POSCartProps {
   onCompleteSale: () => void;
   processing: boolean;
   onClearCart: () => void;
+  cashSessionReady: boolean;
+  checkingCashSession: boolean;
+  warehouseReady: boolean;
+  checkingWarehouse: boolean;
+  paymentConfigReady: boolean;
   customerSearch: string;
   onCustomerSearchChange: (value: string) => void;
   onSearchCustomers: () => void;
@@ -34,6 +39,7 @@ interface POSCartProps {
   onRemovePaymentLine: (lineId: string) => void;
   onUpdatePaymentLine: (lineId: string, patch: Partial<PaymentDraft>) => void;
   totalPaid: number;
+  isCashMethod: (method: string) => boolean;
 }
 
 export function POSCart({
@@ -43,6 +49,11 @@ export function POSCart({
   onCompleteSale,
   processing,
   onClearCart,
+  cashSessionReady,
+  checkingCashSession,
+  warehouseReady,
+  checkingWarehouse,
+  paymentConfigReady,
   customerSearch,
   onCustomerSearchChange,
   onSearchCustomers,
@@ -55,9 +66,16 @@ export function POSCart({
   onRemovePaymentLine,
   onUpdatePaymentLine,
   totalPaid,
+  isCashMethod,
 }: POSCartProps) {
   const isSufficientFunds = totalPaid >= totals.grand_total;
-  const change = Math.max(0, totalPaid - totals.grand_total);
+  const cashPaid = paymentLines
+    .filter((line) => isCashMethod(line.method))
+    .reduce((acc, line) => acc + Number(line.amount || 0), 0);
+  const nonCashPaid = paymentLines
+    .filter((line) => !isCashMethod(line.method))
+    .reduce((acc, line) => acc + Number(line.amount || 0), 0);
+  const change = Math.max(0, cashPaid - Math.max(0, totals.grand_total - nonCashPaid));
 
   return (
     <Card className="pos-shadow-sm h-full flex flex-col border-primary/20 shadow-md">
@@ -182,7 +200,7 @@ export function POSCart({
               </div>
               <div className="space-y-2">
                 {paymentLines.map((line) => {
-                  const isCash = ["cash", "efectivo", "cash_mxn"].includes(line.method.trim().toLowerCase());
+                  const isCash = isCashMethod(line.method);
                   return (
                     <div key={line.id} className="grid grid-cols-12 gap-2">
                       <div className="col-span-4">
@@ -235,11 +253,19 @@ export function POSCart({
             </div>
 
             {totalPaid > 0 && (
-              <div className="flex justify-between items-center pt-1 text-sm">
-                <span className="text-muted-foreground">Cambio</span>
-                <span className={`text-lg font-bold ${isSufficientFunds ? "text-success" : "text-destructive"}`}>
-                  {moneyFormatter.format(change)}
-                </span>
+              <div className="space-y-1 pt-1 text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Cambio</span>
+                  <span className={`text-lg font-bold ${isSufficientFunds ? "text-success" : "text-destructive"}`}>
+                    {moneyFormatter.format(change)}
+                  </span>
+                </div>
+                {change > 0 && cashPaid <= 0 && (
+                  <p className="text-xs text-destructive">El cambio solo puede salir de líneas de efectivo.</p>
+                )}
+                {nonCashPaid > totals.grand_total && (
+                  <p className="text-xs text-destructive">Tarjeta y transferencia no deben exceder el total de la venta.</p>
+                )}
               </div>
             )}
           </div>
@@ -251,9 +277,21 @@ export function POSCart({
           size="lg"
           className="w-full text-lg h-14 font-semibold tracking-wide shadow-md"
           onClick={onCompleteSale}
-          disabled={cart.lines.length === 0 || !isSufficientFunds || processing || paymentLines.length === 0}
+          disabled={cart.lines.length === 0 || !isSufficientFunds || processing || paymentLines.length === 0 || !cashSessionReady || checkingCashSession || !warehouseReady || checkingWarehouse || !paymentConfigReady}
         >
-          {processing ? "Procesando cobro..." : "COBRAR [F1]"}
+          {checkingCashSession
+            ? "Validando caja..."
+            : checkingWarehouse
+            ? "Validando almacén..."
+            : processing
+            ? "Procesando cobro..."
+            : !cashSessionReady
+            ? "Abrir caja para cobrar"
+            : !warehouseReady
+            ? "Configurar almacén"
+            : !paymentConfigReady
+            ? "Configurar pagos"
+            : "COBRAR [F1]"}
         </Button>
       </CardFooter>
     </Card>

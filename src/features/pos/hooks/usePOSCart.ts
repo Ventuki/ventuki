@@ -8,6 +8,7 @@ import { CartEntity } from "../domain/Cart.entity";
 import { getProductsQuery } from "../application/queries/getProducts.query";
 import { getCustomersQuery } from "../application/queries/getCustomers.query";
 import { inventoryRepository } from "../infrastructure/inventory.repository";
+import { cashRegisterRepository } from "@/features/cash-register/infrastructure/cash.repository";
 
 export type ProductResult = { id: string; name: string; sku: string; price: number; stock: number };
 export type CustomerResult = { id: string; full_name: string; tax_id?: string };
@@ -15,6 +16,10 @@ export type PaymentMethodResult = { id: string; name: string; code: string | nul
 export type PaymentDraft = { id: string; method: string; amount: number; reference: string };
 
 const CASH_METHOD_ALIASES = new Set(["cash", "efectivo", "cash_mxn"]);
+
+function isCashMethod(method: string) {
+  return CASH_METHOD_ALIASES.has(method.trim().toLowerCase());
+}
 
 function createEmptyCart(companyId?: string, branchId?: string): CartSnapshot {
   return {
@@ -50,6 +55,11 @@ export function usePOSCart() {
 
   const [cart, setCart] = useState<CartSnapshot>(() => createEmptyCart(company?.id, branch?.id));
   const [processing, setProcessing] = useState(false);
+  const [cashSessionReady, setCashSessionReady] = useState(false);
+  const [checkingCashSession, setCheckingCashSession] = useState(false);
+  const [warehouseReady, setWarehouseReady] = useState(false);
+  const [checkingWarehouse, setCheckingWarehouse] = useState(false);
+  const [paymentConfigReady, setPaymentConfigReady] = useState(false);
 
   const prevTenantRef = useRef<{ companyId?: string; branchId?: string }>({
     companyId: company?.id,
@@ -63,8 +73,12 @@ export function usePOSCart() {
   );
 
   const syncTenantContext = useCallback(async () => {
-    if (!company?.id || !branch?.id) return false;
+    if (!company?.id || !branch?.id) {
+      setWarehouseReady(false);
+      return false;
+    }
 
+    setCheckingWarehouse(true);
     let activeWarehouseId = cart.warehouse_id;
     if (!activeWarehouseId || cart.branch_id !== branch.id) {
       const result = await inventoryRepository.getDefaultWarehouse(company.id, branch.id);
@@ -76,6 +90,7 @@ export function usePOSCart() {
       }
     }
 
+    setWarehouseReady(!!activeWarehouseId);
     setCart((prev) => {
       if (prev.company_id === company.id && prev.branch_id === branch.id && prev.warehouse_id === activeWarehouseId) {
         return prev;
@@ -87,6 +102,7 @@ export function usePOSCart() {
         warehouse_id: activeWarehouseId,
       };
     });
+    setCheckingWarehouse(false);
     return !!activeWarehouseId;
   }, [company?.id, branch?.id, cart.warehouse_id, cart.branch_id]);
 
@@ -120,6 +136,31 @@ export function usePOSCart() {
   }, [syncTenantContext]);
 
   useEffect(() => {
+    const checkCashSession = async () => {
+      if (!company?.id || !branch?.id || !user?.id) {
+        setCashSessionReady(false);
+        return;
+      }
+
+      setCheckingCashSession(true);
+      const { session, error } = await cashRegisterRepository.getActiveSession(company.id, branch.id, user.id);
+
+      if (error) {
+        console.error("[POS] error checking cash session", error);
+        toast.error("No se pudo validar el estado de caja");
+        setCashSessionReady(false);
+        setCheckingCashSession(false);
+        return;
+      }
+
+      setCashSessionReady(Boolean(session));
+      setCheckingCashSession(false);
+    };
+
+    checkCashSession();
+  }, [company?.id, branch?.id, user?.id]);
+
+  useEffect(() => {
     const loadPaymentMethods = async () => {
       if (!company?.id) return;
 
@@ -137,6 +178,14 @@ export function usePOSCart() {
 
       const rows = (data || []) as PaymentMethodResult[];
       setPaymentMethods(rows);
+      setPaymentConfigReady(rows.length > 0);
+
+      if (rows.length === 0) {
+        setSelectedPaymentMethod("");
+        setPaymentLines([]);
+        toast.error("No hay métodos de pago activos para esta empresa");
+        return;
+      }
 
       const defaultMethod = rows[0]?.code || rows[0]?.id || "cash";
       setSelectedPaymentMethod(defaultMethod);
@@ -293,6 +342,31 @@ export function usePOSCart() {
       return;
     }
 
+    if (checkingCashSession) {
+      toast.error("Espera a que se valide el estado de caja");
+      return;
+    }
+
+    if (!cashSessionReady) {
+      toast.error("Debes abrir caja antes de cobrar en el POS");
+      return;
+    }
+
+    if (checkingWarehouse) {
+      toast.error("Espera a que se valide el almacén operativo");
+      return;
+    }
+
+    if (!warehouseReady) {
+      toast.error("No hay almacén operativo para esta sucursal");
+      return;
+    }
+
+    if (!paymentConfigReady) {
+      toast.error("No hay métodos de pago configurados para cobrar");
+      return;
+    }
+
     if (cart.lines.length === 0) {
       toast.error("Agrega productos antes de cobrar");
       return;
@@ -334,6 +408,21 @@ export function usePOSCart() {
 
     if (totalPaid < totals.grand_total) {
       toast.error("El pago total es insuficiente");
+      return;
+    }
+
+    const nonCashTotal = normalizedPayments
+      .filter((line) => !isCashMethod(line.method))
+      .reduce((acc, line) => acc + line.amount, 0);
+
+    if (nonCashTotal > totals.grand_total) {
+      toast.error("Los pagos no-efectivo no deben exceder el total de la venta");
+      return;
+    }
+
+    const cashLines = normalizedPayments.filter((line) => isCashMethod(line.method));
+    if (cashLines.length === 0 && totalPaid > totals.grand_total) {
+      toast.error("El excedente solo se permite cuando hay pago en efectivo para calcular cambio");
       return;
     }
 
@@ -404,5 +493,11 @@ export function usePOSCart() {
 
     completeSale,
     processing,
+    cashSessionReady,
+    checkingCashSession,
+    warehouseReady,
+    checkingWarehouse,
+    paymentConfigReady,
+    isCashMethod,
   };
 }

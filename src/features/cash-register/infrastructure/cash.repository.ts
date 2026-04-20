@@ -11,9 +11,59 @@ export const cashRegisterRepository = {
       .eq("branch_id", branchId)
       .eq("opened_by", cashierId)
       .is("closed_at", null)
+      .order("opened_at", { ascending: false })
       .maybeSingle();
 
     return { session, error };
+  },
+
+  async getSessionSummary(sessionId: string, companyId: string) {
+    const { data: session, error } = await supabase
+      .from("cash_register_sessions" as any)
+      .select("*")
+      .eq("id", sessionId)
+      .eq("company_id", companyId)
+      .maybeSingle();
+
+    if (error || !session) {
+      return { session, totals: null, error };
+    }
+
+    const { data: totals, error: totalsError } = await supabase.rpc("calculate_cash_session_totals" as any, {
+      _session_id: sessionId,
+    } as any);
+
+    if (totalsError) {
+      return { session, totals: null, error: totalsError };
+    }
+
+    return { session, totals, error: null };
+  },
+
+  async getLatestSession(companyId: string, branchId: string, cashierId: string) {
+    const { data: session, error } = await supabase
+      .from("cash_register_sessions" as any)
+      .select("*")
+      .eq("company_id", companyId)
+      .eq("branch_id", branchId)
+      .eq("opened_by", cashierId)
+      .order("opened_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !session) {
+      return { session, totals: null, error };
+    }
+
+    const { data: totals, error: totalsError } = await supabase.rpc("calculate_cash_session_totals" as any, {
+      _session_id: session.id,
+    } as any);
+
+    if (totalsError) {
+      return { session, totals: null, error: totalsError };
+    }
+
+    return { session, totals, error: null };
   },
 
   async openSession(input: CreateSessionInput) {

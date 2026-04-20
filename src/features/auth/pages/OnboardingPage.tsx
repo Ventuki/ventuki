@@ -114,6 +114,7 @@ export default function OnboardingPage() {
       setCompany({ id: result.company_id, name: result.company_name, slug: result.company_slug, role: "admin" });
       setBranch({ id: result.branch_id, name: result.branch_name });
       toast.success("¡Empresa creada exitosamente!");
+      toast.info("Siguiente paso recomendado: abrir caja y validar el POS para tu primera operación.");
       navigate("/");
     } catch (err: any) {
       const msg = err?.message || "Error al crear la empresa";

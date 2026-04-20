@@ -1,4 +1,6 @@
 import { useEffect, useRef } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 import { AppLayout } from "@/components/layout";
 import { usePOSCart } from "../hooks/usePOSCart";
 import { POSCatalog } from "../components/POSCatalog";
@@ -43,9 +45,35 @@ export default function POSPage() {
   return (
     <AppLayout>
       <div className="flex flex-col h-[calc(100vh-6rem)] animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
-        <div className="mb-4">
-          <h1 className="text-2xl font-bold tracking-tight">Punto de Venta</h1>
-          <p className="text-muted-foreground">Flujo rápido. Atajos: [F1] Cobrar, [F2] Buscar, [Esc] Limpiar.</p>
+        <div className="mb-4 space-y-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Punto de Venta</h1>
+            <p className="text-muted-foreground">Flujo rápido. Atajos: [F1] Cobrar, [F2] Buscar, [Esc] Limpiar.</p>
+          </div>
+
+          {(!cartHook.cashSessionReady || !cartHook.warehouseReady || !cartHook.paymentConfigReady) && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>POS no listo para cobrar</AlertTitle>
+              <AlertDescription className="space-y-1">
+                {!cartHook.cashSessionReady && (
+                  <p>
+                    {cartHook.checkingCashSession
+                      ? "Se está validando el estado de caja para esta sucursal."
+                      : "Debes abrir una caja activa antes de registrar ventas desde el POS."}
+                  </p>
+                )}
+                {!cartHook.warehouseReady && (
+                  <p>
+                    {cartHook.checkingWarehouse
+                      ? "Se está validando el almacén operativo de la sucursal."
+                      : "No existe un almacén operativo para esta sucursal."}
+                  </p>
+                )}
+                {!cartHook.paymentConfigReady && <p>No hay métodos de pago activos configurados para cobrar.</p>}
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
 
         <div className="grid gap-6 lg:grid-cols-12 flex-1 min-h-0 opacity-0 animate-[fade-in_0.5s_ease-out_0.2s_forwards]">
@@ -69,6 +97,11 @@ export default function POSPage() {
               onCompleteSale={cartHook.completeSale}
               processing={cartHook.processing}
               onClearCart={cartHook.clearCart}
+              cashSessionReady={cartHook.cashSessionReady}
+              checkingCashSession={cartHook.checkingCashSession}
+              warehouseReady={cartHook.warehouseReady}
+              checkingWarehouse={cartHook.checkingWarehouse}
+              paymentConfigReady={cartHook.paymentConfigReady}
               customerSearch={cartHook.customerSearch}
               onCustomerSearchChange={cartHook.setCustomerSearch}
               onSearchCustomers={cartHook.onSearchCustomers}
@@ -81,6 +114,7 @@ export default function POSPage() {
               onRemovePaymentLine={cartHook.removePaymentLine}
               onUpdatePaymentLine={cartHook.updatePaymentLine}
               totalPaid={cartHook.totalPaid}
+              isCashMethod={cartHook.isCashMethod}
             />
           </div>
         </div>

@@ -137,7 +137,7 @@ export async function getProductForEdit(id: string, companyId: string) {
   const [productRes, barcodeRes, priceRes] = await Promise.all([
     supabase
       .from("products" as any)
-      .select("id,sku,name,description,category_id,brand_id,unit_id,is_active")
+      .select("id,sku,name,description,category_id,brand_id,unit_id,is_active,control_expiration")
       .eq("id", id)
       .eq("company_id", companyId)
       .single(),

@@ -33,3 +33,7 @@ Entregables:
 5. UI/UX
 6. Datos y Supabase
 7. Producto/Operaciones POS
+
+## Roadmap vivo de pantallas
+- `docs/SCREEN_REMEDIATION_ROADMAP.md`
+- usar este documento como mapa incremental de prioridades y dependencias entre pantallas

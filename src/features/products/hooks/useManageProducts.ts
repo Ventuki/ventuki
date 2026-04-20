@@ -1,21 +1,22 @@
-﻿import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/features/auth";
 import { toast } from "sonner";
 import {
-  deleteProductById,
   getProductForEdit,
   loadProductCatalogs,
   ProductRow,
   searchProducts,
   SimpleOption,
 } from "@/features/products/services/productService";
+import { deleteProductUseCase } from "@/features/products/application/deleteProduct.usecase";
+import { getProductPermissionsByRole } from "@/features/products/application/security/rbac.service";
 
 export interface WarehouseOption extends SimpleOption {
   branch_id?: string;
 }
 
 export function useManageProducts() {
-  const { company } = useAuth();
+  const { company, user } = useAuth();
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [categories, setCategories] = useState<SimpleOption[]>([]);
@@ -63,14 +64,25 @@ export function useManageProducts() {
   }, [loadProducts]);
 
   const deleteProduct = async (id: string) => {
-    const { error } = await deleteProductById(id, company?.id || "");
-    if (error) {
-      toast.error(error.message);
+    if (!company?.id) {
+      toast.error("Empresa no seleccionada");
       return false;
     }
-    toast.success("Producto eliminado");
-    loadProducts();
-    return true;
+
+    try {
+      await deleteProductUseCase({
+        id,
+        company_id: company.id,
+        actor_user_id: user?.id,
+        permissions: getProductPermissionsByRole(company.role),
+      });
+      toast.success("Producto eliminado");
+      loadProducts();
+      return true;
+    } catch (error: any) {
+      toast.error(error?.message || "No se pudo eliminar el producto");
+      return false;
+    }
   };
 
   const getProductDetails = async (id: string) => {
@@ -98,4 +110,3 @@ export function useManageProducts() {
     getProductDetails,
   };
 }
-

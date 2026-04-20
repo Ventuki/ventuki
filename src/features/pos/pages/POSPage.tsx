@@ -55,22 +55,21 @@ export default function POSPage() {
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>POS no listo para cobrar</AlertTitle>
-              <AlertDescription className="space-y-1">
-                {!cartHook.cashSessionReady && (
-                  <p>
-                    {cartHook.checkingCashSession
-                      ? "Se está validando el estado de caja para esta sucursal."
-                      : "Debes abrir una caja activa antes de registrar ventas desde el POS."}
-                  </p>
-                )}
-                {!cartHook.warehouseReady && (
-                  <p>
-                    {cartHook.checkingWarehouse
-                      ? "Se está validando el almacén operativo de la sucursal."
-                      : "No existe un almacén operativo para esta sucursal."}
-                  </p>
-                )}
-                {!cartHook.paymentConfigReady && <p>No hay métodos de pago activos configurados para cobrar.</p>}
+              <AlertDescription className="space-y-3">
+                <p>Faltan precondiciones operativas. Revisa este checklist antes de intentar cobrar.</p>
+                <div className="space-y-2 text-sm">
+                  {cartHook.readinessChecklist.map((item) => (
+                    <div key={item.key} className="rounded-md border border-destructive/20 bg-background/70 px-3 py-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-medium">{item.label}</span>
+                        <span className={`text-xs font-semibold ${item.ready ? "text-emerald-600" : item.checking ? "text-amber-600" : "text-destructive"}`}>
+                          {item.ready ? "Listo" : item.checking ? "Validando" : "Pendiente"}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">{item.hint}</p>
+                    </div>
+                  ))}
+                </div>
               </AlertDescription>
             </Alert>
           )}
@@ -86,6 +85,9 @@ export default function POSPage() {
               loadingSearch={cartHook.loadingSearch}
               products={cartHook.products}
               onAddToCart={cartHook.addToCart}
+              cashSessionReady={cartHook.cashSessionReady}
+              warehouseReady={cartHook.warehouseReady}
+              paymentConfigReady={cartHook.paymentConfigReady}
             />
           </div>
 

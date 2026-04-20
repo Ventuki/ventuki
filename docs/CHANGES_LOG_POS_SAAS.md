@@ -356,3 +356,48 @@ Sigue pendiente la decisión mayor sobre cuál onboarding debe consolidarse como
 - Menos transferencias ejecutadas con contexto incompleto.
 - Mejor validación manual antes de mover stock entre almacenes.
 - Mejor QA manual del flujo transferencia interna.
+
+### Sprint 1, checklist de QA manual del bloque operativo
+
+#### Cambios aplicados
+- Se documentó un checklist corto de QA manual para validar el bloque endurecido de Sprint 1.
+- El checklist cubre producto → POS, inventario → compras, recepción, conteo físico y transferencias.
+
+#### Archivos tocados
+- `docs/SPRINT_1_NEXT_STEPS.md`
+
+#### Impacto esperado
+- Más facilidad para validar el avance como circuito integrado y no como cambios aislados.
+- Mejor cierre operativo del bloque antes de volver a POS/precondiciones.
+
+### Sprint 1, precondiciones operativas visibles en POS
+
+#### Cambios aplicados
+- El POS ahora muestra un checklist visible de precondiciones antes de cobrar.
+- Cada requisito comunica si está listo, validándose o pendiente.
+- También orienta mejor sobre la acción operativa faltante: caja, almacén o métodos de pago.
+
+#### Archivos tocados
+- `src/features/pos/hooks/usePOSCart.ts`
+- `src/features/pos/pages/POSPage.tsx`
+
+#### Impacto esperado
+- Menos bloqueos ambiguos al entrar al POS.
+- Más claridad para destrabar operación real sin adivinar qué falta.
+- Mejor QA manual del frente POS.
+
+### Sprint 1, catálogo POS con lectura operativa más explícita
+
+#### Cambios aplicados
+- El catálogo POS ahora comunica mejor cuando el contexto operativo aún no está listo para cobrar.
+- También diferencia mejor entre búsqueda vacía, búsqueda sin resultados y productos no cobrables.
+- Cada producto muestra con más claridad por qué no puede agregarse: sin precio, sin stock o precondición pendiente.
+
+#### Archivos tocados
+- `src/features/pos/components/POSCatalog.tsx`
+- `src/features/pos/pages/POSPage.tsx`
+
+#### Impacto esperado
+- Menos ambigüedad al operar el catálogo del POS.
+- Más claridad sobre si el problema es producto, stock o contexto operativo.
+- Mejor QA manual del puente producto → POS.

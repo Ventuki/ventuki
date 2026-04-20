@@ -336,6 +336,40 @@ export function usePOSCart() {
     setPaymentLines([{ id: crypto.randomUUID(), method: defaultMethod, amount: 0, reference: "" }]);
   }, [selectedPaymentMethod, paymentMethods]);
 
+  const readinessChecklist = [
+    {
+      key: "cash-session",
+      label: "Caja activa en la sucursal",
+      ready: cashSessionReady,
+      checking: checkingCashSession,
+      hint: checkingCashSession
+        ? "Validando estado de caja..."
+        : cashSessionReady
+          ? "Caja lista para registrar ventas."
+          : "Abre una caja activa antes de cobrar.",
+    },
+    {
+      key: "warehouse",
+      label: "Almacén operativo disponible",
+      ready: warehouseReady,
+      checking: checkingWarehouse,
+      hint: checkingWarehouse
+        ? "Validando almacén operativo..."
+        : warehouseReady
+          ? "Almacén listo para descontar stock."
+          : "Configura o activa un almacén para esta sucursal.",
+    },
+    {
+      key: "payments",
+      label: "Métodos de pago activos",
+      ready: paymentConfigReady,
+      checking: false,
+      hint: paymentConfigReady
+        ? "Ya existen métodos de pago para cobrar."
+        : "Activa al menos un método de pago para operar el POS.",
+    },
+  ];
+
   const completeSale = async () => {
     if (!user?.id) {
       toast.error("No hay usuario autenticado");
@@ -498,6 +532,7 @@ export function usePOSCart() {
     warehouseReady,
     checkingWarehouse,
     paymentConfigReady,
+    readinessChecklist,
     isCashMethod,
   };
 }

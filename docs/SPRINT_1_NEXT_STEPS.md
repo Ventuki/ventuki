@@ -12,6 +12,7 @@ Avanzar desde una base ya operable hacia validación integrada real, mayor solid
 - Validar que exista contexto completo empresa/sucursal/almacén.
 - Validar que el flujo de pago tenga configuración mínima suficiente.
 - Mostrar bloqueos y mensajes operativos claros, no ambiguos.
+- Estado actual: este frente ya quedó bastante endurecido en UI y mensajes operativos; lo siguiente es validación integrada y cierre selectivo.
 
 ## Prioridad 2
 ### QA integrado del circuito base

@@ -7,8 +7,7 @@ import type { CartLine, CartSnapshot } from "../types/cart.types";
 import { CartEntity } from "../domain/Cart.entity";
 import { getProductsQuery } from "../application/queries/getProducts.query";
 import { getCustomersQuery } from "../application/queries/getCustomers.query";
-import { inventoryRepository } from "../infrastructure/inventory.repository";
-import { cashRegisterRepository } from "@/features/cash-register/infrastructure/cash.repository";
+import { ensurePosReadyUseCase } from "../application/ensurePosReady.usecase";
 
 export type ProductResult = { id: string; name: string; sku: string; price: number; stock: number };
 export type CustomerResult = { id: string; full_name: string; tax_id?: string };
@@ -73,38 +72,69 @@ export function usePOSCart() {
   );
 
   const syncTenantContext = useCallback(async () => {
-    if (!company?.id || !branch?.id) {
+    if (!company?.id || !branch?.id || !user?.id) {
       setWarehouseReady(false);
+      setCashSessionReady(false);
+      setPaymentConfigReady(false);
       return false;
     }
 
     setCheckingWarehouse(true);
-    let activeWarehouseId = cart.warehouse_id;
-    if (!activeWarehouseId || cart.branch_id !== branch.id) {
-      const result = await inventoryRepository.getDefaultWarehouse(company.id, branch.id);
-      const activeWarehouse = (result.data as { id: string } | null) || null;
-      activeWarehouseId = activeWarehouse?.id || "";
-
-      if (!activeWarehouseId) {
-        toast.error("No existe un almacén activo para esta sucursal");
-      }
-    }
-
-    setWarehouseReady(!!activeWarehouseId);
-    setCart((prev) => {
-      if (prev.company_id === company.id && prev.branch_id === branch.id && prev.warehouse_id === activeWarehouseId) {
-        return prev;
-      }
-      return {
-        ...prev,
+    setCheckingCashSession(true);
+    try {
+      const readiness = await ensurePosReadyUseCase({
         company_id: company.id,
         branch_id: branch.id,
-        warehouse_id: activeWarehouseId,
-      };
-    });
-    setCheckingWarehouse(false);
-    return !!activeWarehouseId;
-  }, [company?.id, branch?.id, cart.warehouse_id, cart.branch_id]);
+        cashier_user_id: user.id,
+        current_warehouse_id: cart.branch_id === branch.id ? cart.warehouse_id || undefined : undefined,
+      });
+
+      if (!readiness.warehouseReady) {
+        toast.error("No existe un almacén activo para esta sucursal");
+      }
+
+      if (!readiness.paymentConfigReady) {
+        toast.error("No hay métodos de pago activos para esta empresa");
+      }
+
+      setWarehouseReady(readiness.warehouseReady);
+      setCashSessionReady(readiness.cashSessionReady);
+      setPaymentConfigReady(readiness.paymentConfigReady);
+      setPaymentMethods(readiness.paymentMethods);
+
+      const defaultMethod = readiness.paymentMethods[0]?.code || readiness.paymentMethods[0]?.id || "cash";
+      setSelectedPaymentMethod(readiness.paymentConfigReady ? defaultMethod : "");
+      setPaymentLines(
+        readiness.paymentConfigReady
+          ? [{ id: crypto.randomUUID(), method: defaultMethod, amount: 0, reference: "" }]
+          : [],
+      );
+
+      setCart((prev) => {
+        if (prev.company_id === company.id && prev.branch_id === branch.id && prev.warehouse_id === readiness.warehouse_id) {
+          return prev;
+        }
+        return {
+          ...prev,
+          company_id: company.id,
+          branch_id: branch.id,
+          warehouse_id: readiness.warehouse_id,
+        };
+      });
+
+      return readiness.warehouseReady;
+    } catch (error) {
+      console.error("[POS] error syncing readiness", error);
+      toast.error(error instanceof Error ? error.message : "No se pudo validar la preparación del POS");
+      setWarehouseReady(false);
+      setCashSessionReady(false);
+      setPaymentConfigReady(false);
+      return false;
+    } finally {
+      setCheckingWarehouse(false);
+      setCheckingCashSession(false);
+    }
+  }, [company?.id, branch?.id, user?.id, cart.warehouse_id, cart.branch_id]);
 
   useEffect(() => {
     const tenantChanged =
@@ -135,65 +165,6 @@ export function usePOSCart() {
     run();
   }, [syncTenantContext]);
 
-  useEffect(() => {
-    const checkCashSession = async () => {
-      if (!company?.id || !branch?.id || !user?.id) {
-        setCashSessionReady(false);
-        return;
-      }
-
-      setCheckingCashSession(true);
-      const { session, error } = await cashRegisterRepository.getActiveSession(company.id, branch.id, user.id);
-
-      if (error) {
-        console.error("[POS] error checking cash session", error);
-        toast.error("No se pudo validar el estado de caja");
-        setCashSessionReady(false);
-        setCheckingCashSession(false);
-        return;
-      }
-
-      setCashSessionReady(Boolean(session));
-      setCheckingCashSession(false);
-    };
-
-    checkCashSession();
-  }, [company?.id, branch?.id, user?.id]);
-
-  useEffect(() => {
-    const loadPaymentMethods = async () => {
-      if (!company?.id) return;
-
-      const { data, error } = await supabase
-        .from("payment_methods")
-        .select("id,name,code")
-        .eq("company_id", company.id)
-        .eq("is_active", true)
-        .order("name");
-
-      if (error) {
-        toast.error(error.message || "No se pudieron cargar métodos de pago");
-        return;
-      }
-
-      const rows = (data || []) as PaymentMethodResult[];
-      setPaymentMethods(rows);
-      setPaymentConfigReady(rows.length > 0);
-
-      if (rows.length === 0) {
-        setSelectedPaymentMethod("");
-        setPaymentLines([]);
-        toast.error("No hay métodos de pago activos para esta empresa");
-        return;
-      }
-
-      const defaultMethod = rows[0]?.code || rows[0]?.id || "cash";
-      setSelectedPaymentMethod(defaultMethod);
-      setPaymentLines([{ id: crypto.randomUUID(), method: defaultMethod, amount: 0, reference: "" }]);
-    };
-
-    loadPaymentMethods();
-  }, [company?.id]);
 
   const onSearchProducts = useCallback(
     async (term?: string) => {

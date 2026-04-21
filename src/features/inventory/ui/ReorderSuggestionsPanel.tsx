@@ -1,12 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import type { StockAlert, StockRecord } from "../types/inventory.types";
+import type { PurchaseItemDraft } from "@/features/purchases/services/purchaseService";
 
 function rowKey(row: Pick<StockRecord, "product_id" | "warehouse_id">) {
   return `${row.product_id}:${row.warehouse_id}`;
 }
 
-export function ReorderSuggestionsPanel({ alerts, rows }: { alerts: StockAlert[]; rows: StockRecord[] }) {
+export function ReorderSuggestionsPanel({ alerts, rows, onCreateDraft }: { alerts: StockAlert[]; rows: StockRecord[]; onCreateDraft: (items: PurchaseItemDraft[], meta: { source: string; item_count: number; products: Array<{ product_id: string; warehouse_id: string; suggested_qty: number }> }) => Promise<void>; }) {
   const lowAlerts = alerts.filter((alert) => alert.severity === "low");
 
   const suggestions = lowAlerts.map((alert) => {
@@ -20,22 +21,24 @@ export function ReorderSuggestionsPanel({ alerts, rows }: { alerts: StockAlert[]
     };
   });
 
-  const sendToPurchases = () => {
-    const payload = suggestions.map((item) => ({
+  const sendToPurchases = async () => {
+    const payload: PurchaseItemDraft[] = suggestions.map((item) => ({
       product_id: item.product_id,
-      product_name: item.product_name,
-      product_sku: item.product_sku,
       quantity: item.suggested_qty > 0 ? item.suggested_qty : item.min_qty,
       unit_cost: 0,
       tax_rate: 0,
     }));
 
-    localStorage.setItem("ventuki.purchaseDraftFromReorder", JSON.stringify({
-      source: "reorder-suggestions",
-      items: payload,
-      created_at: new Date().toISOString(),
-    }));
-    toast.success(`Lista de recompra preparada con ${payload.length} producto(s). Ábrela en Compras para completar proveedor, costos y revisar agrupación sugerida.`);
+    await onCreateDraft(payload, {
+      source: "inventory.restock_suggestion",
+      item_count: payload.length,
+      products: suggestions.map((item) => ({
+        product_id: item.product_id,
+        warehouse_id: item.warehouse_id,
+        suggested_qty: item.suggested_qty > 0 ? item.suggested_qty : item.min_qty,
+      })),
+    });
+    toast.success(`Se creó un draft de recompra con ${payload.length} producto(s). Revísalo y complétalo en Compras.`);
   };
 
   return (
@@ -48,8 +51,8 @@ export function ReorderSuggestionsPanel({ alerts, rows }: { alerts: StockAlert[]
           </p>
         </div>
         {suggestions.length > 0 && (
-          <Button type="button" variant="outline" onClick={sendToPurchases}>
-            Preparar compra
+          <Button type="button" variant="outline" onClick={() => void sendToPurchases()}>
+            Crear draft de compra
           </Button>
         )}
       </div>

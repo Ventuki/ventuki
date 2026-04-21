@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useAuth } from "@/features/auth";
+import { createDraftPurchaseFromReorder } from "@/features/purchases/services/purchaseService";
+import { inventoryAuditRepository } from "../infrastructure/audit.repository";
 import { useInventory } from "../hooks/useInventory";
 import { useStock } from "../hooks/useStock";
 import { useAdjustStock } from "../hooks/useAdjustStock";
@@ -166,7 +168,52 @@ export default function InventoryPage() {
           />
         </div>
 
-        <ReorderSuggestionsPanel alerts={alerts} rows={rows} />
+        <ReorderSuggestionsPanel
+          alerts={alerts}
+          rows={rows}
+          onCreateDraft={async (items, meta) => {
+            if (!company?.id || !branch?.id || !user?.id) {
+              toast.error("Contexto incompleto para crear draft de compra");
+              return;
+            }
+
+            await inventoryAuditRepository.record({
+              company_id: company.id,
+              branch_id: branch.id,
+              warehouse_id: warehouseId === "all" ? "multiple" : warehouseId,
+              actor_user_id: user.id,
+              action: "inventory.restock_config_updated",
+              target_id: null,
+              payload: {
+                source: meta.source,
+                item_count: meta.item_count,
+                products: meta.products,
+              },
+            });
+
+            const { data, error } = await createDraftPurchaseFromReorder({
+              companyId: company.id,
+              branchId: branch.id,
+              userId: user.id,
+              notes: "Draft generado desde sugerencias de reabasto en Inventario",
+              items,
+            });
+
+            if (error || !data) {
+              toast.error(error?.message || "No se pudo crear el draft de recompra");
+              return;
+            }
+
+            const draftsCount = data.drafts?.length || 0;
+            const unresolved = Number(data.unresolved_items || 0);
+            if (draftsCount > 1) {
+              toast.success(`Se crearon ${draftsCount} drafts agrupados por proveedor.${unresolved > 0 ? ` ${unresolved} producto(s) quedaron fuera por falta de proveedor sugerido.` : ""}`);
+            } else {
+              const supplierName = data.drafts?.[0]?.supplier_name;
+              toast.success(`Draft creado${supplierName ? ` con proveedor sugerido: ${supplierName}` : ""}.${unresolved > 0 ? ` ${unresolved} producto(s) quedaron fuera por falta de proveedor sugerido.` : ""} Continúa la revisión en Compras.`);
+            }
+          }}
+        />
 
         <Card>
           <CardHeader>

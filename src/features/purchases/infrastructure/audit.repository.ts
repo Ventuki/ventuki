@@ -4,7 +4,7 @@ export const purchaseAuditRepository = {
   async record(input: {
     company_id: string;
     actor_user_id?: string;
-    action: "purchase.draft_updated";
+    action: "purchase.draft_updated" | "purchase.draft_created_from_restock";
     entity_id: string;
     new_data?: Record<string, unknown>;
   }) {

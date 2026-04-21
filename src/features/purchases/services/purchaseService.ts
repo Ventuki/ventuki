@@ -5,6 +5,7 @@ import { cancelPurchaseUseCase } from "@/features/purchases/application/cancelPu
 import { reopenPurchaseUseCase } from "@/features/purchases/application/reopenPurchase.usecase";
 import { getPurchaseDraftDetailUseCase } from "@/features/purchases/application/getPurchaseDraftDetail.usecase";
 import { updatePurchaseDraftUseCase } from "@/features/purchases/application/updatePurchaseDraft.usecase";
+import { createPurchaseDraftFromReorderUseCase } from "@/features/purchases/application/createPurchaseDraftFromReorder.usecase";
 
 export interface PurchaseRow {
   id: string;
@@ -193,8 +194,8 @@ export async function getPendingPurchaseItems(purchaseId: string) {
   return { data: (result.data || []) as unknown as Array<any>, error: result.error };
 }
 
-export async function suggestSupplierForProducts(companyId: string, productIds: string[]) {
-  if (productIds.length === 0) return { supplierId: null as string | null, supplierName: null as string | null };
+export async function getSuggestedSuppliersByProduct(companyId: string, productIds: string[]) {
+  if (productIds.length === 0) return new Map<string, { supplierId: string; supplierName: string | null }>();
 
   const { data, error } = await supabase
     .from("purchase_items" as any)
@@ -203,7 +204,7 @@ export async function suggestSupplierForProducts(companyId: string, productIds: 
     .order("created_at", { foreignTable: "purchases", ascending: false });
 
   if (error || !data) {
-    return { supplierId: null as string | null, supplierName: null as string | null };
+    return new Map<string, { supplierId: string; supplierName: string | null }>();
   }
 
   const groupedByProduct = new Map<string, { supplierId: string; supplierName: string | null }>();
@@ -218,6 +219,12 @@ export async function suggestSupplierForProducts(companyId: string, productIds: 
     });
   }
 
+  return groupedByProduct;
+}
+
+export async function suggestSupplierForProducts(companyId: string, productIds: string[]) {
+  const groupedByProduct = await getSuggestedSuppliersByProduct(companyId, productIds);
+
   const counts = new Map<string, { count: number; name: string | null }>();
   for (const hit of groupedByProduct.values()) {
     const current = counts.get(hit.supplierId);
@@ -231,6 +238,28 @@ export async function suggestSupplierForProducts(companyId: string, productIds: 
   if (!best) return { supplierId: null as string | null, supplierName: null as string | null };
 
   return { supplierId: best[0], supplierName: best[1].name };
+}
+
+export async function createDraftPurchaseFromReorder(params: {
+  companyId: string;
+  branchId: string;
+  userId: string;
+  notes?: string;
+  items: PurchaseItemDraft[];
+}) {
+  try {
+    const result = await createPurchaseDraftFromReorderUseCase({
+      company_id: params.companyId,
+      branch_id: params.branchId,
+      actor_user_id: params.userId,
+      notes: params.notes,
+      items: params.items,
+    });
+
+    return { data: result, error: null };
+  } catch (error: any) {
+    return { data: null, error };
+  }
 }
 
 export async function receivePurchase(params: {

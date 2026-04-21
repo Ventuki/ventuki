@@ -14,6 +14,7 @@ export * from "./application/addProduct.usecase";
 export * from "./application/removeProduct.usecase";
 export * from "./application/applyDiscount.usecase";
 export * from "./application/processPayment.usecase";
+export * from "./application/ensurePosReady.usecase";
 export * from "./application/cancelSale.usecase";
 
 export * from "./application/commands/createSale.command";
@@ -21,6 +22,7 @@ export * from "./application/commands/cancelSale.command";
 export * from "./application/queries/getProducts.query";
 export * from "./application/queries/getCustomers.query";
 export * from "./application/queries/getStock.query";
+export * from "./application/queries/getActivePaymentMethods.query";
 
 export * from "./domain/Sale.entity";
 export * from "./domain/Cart.entity";

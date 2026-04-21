@@ -8,6 +8,7 @@ import { useAuth } from "@/features/auth";
 import { toast } from "sonner";
 import { openSessionUseCase } from "../application/openSession.usecase";
 import { closeSessionUseCase } from "../application/closeSession.usecase";
+import { getSessionSummaryUseCase } from "../application/getSessionSummary.usecase";
 import { cashRegisterRepository } from "../infrastructure/cash.repository";
 
 const moneyFormatter = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" });
@@ -67,11 +68,11 @@ export default function CashRegisterPage() {
       setSessionId(session.id);
       setActiveSession(session);
 
-      const summary = await cashRegisterRepository.getSessionSummary(session.id, company.id);
-      if (summary.error) {
-        toast.error("No se pudo cargar el resumen de la sesión activa");
-      } else {
+      try {
+        const summary = await getSessionSummaryUseCase({ session_id: session.id, company_id: company.id });
         setSessionTotals(summary.totals);
+      } catch {
+        toast.error("No se pudo cargar el resumen de la sesión activa");
       }
 
       setLoadingSession(false);
@@ -92,10 +93,12 @@ export default function CashRegisterPage() {
         ["cash.open"],
       );
       setSessionId(result.session_id);
-      const summary = await cashRegisterRepository.getSessionSummary(result.session_id, company.id);
-      if (!summary.error) {
+      try {
+        const summary = await getSessionSummaryUseCase({ session_id: result.session_id, company_id: company.id });
         setActiveSession(summary.session);
         setSessionTotals(summary.totals);
+      } catch {
+        toast.error("No se pudo cargar el resumen de la sesión recién abierta");
       }
       toast.success("Caja abierta correctamente");
     } catch (e: any) {

@@ -1,9 +1,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { CashSessionDetailDialog } from "./CashSessionDetailDialog";
 
 const moneyFormatter = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" });
 
-export function RecentSessionsPanel({ rows }: { rows: Array<{ id: string; opened_at: string | null; closed_at: string | null; opening_amount: number | null; difference: number | null; status?: string | null }> }) {
+export function RecentSessionsPanel({ rows, onLoadDetail }: { rows: Array<{ id: string; opened_at: string | null; closed_at: string | null; opening_amount: number | null; difference: number | null; status?: string | null }>; onLoadDetail: (sessionId: string) => Promise<{ session: any; totals: any; movements: any[] }>; }) {
   return (
     <Card>
       <CardHeader>
@@ -22,6 +23,7 @@ export function RecentSessionsPanel({ rows }: { rows: Array<{ id: string; opened
                 <TableHead className="text-right">Fondo inicial</TableHead>
                 <TableHead className="text-right">Diferencia</TableHead>
                 <TableHead>Estado</TableHead>
+                <TableHead className="text-right">Detalle</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -34,6 +36,9 @@ export function RecentSessionsPanel({ rows }: { rows: Array<{ id: string; opened
                     {moneyFormatter.format(Number(row.difference || 0))}
                   </TableCell>
                   <TableCell>{row.closed_at ? "Cerrada" : "Abierta"}</TableCell>
+                  <TableCell className="text-right">
+                    <CashSessionDetailDialog row={row} onLoadDetail={onLoadDetail} />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

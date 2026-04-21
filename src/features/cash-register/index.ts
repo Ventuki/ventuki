@@ -6,6 +6,7 @@ export * from "./application/openSession.usecase";
 export * from "./application/closeSession.usecase";
 export * from "./application/recordMovement.usecase";
 export * from "./application/getSessionSummary.usecase";
+export * from "./application/getSessionDetail.usecase";
 export * from "./application/listRecentSessions.usecase";
 export * from "./application/security/rbac.service";
 

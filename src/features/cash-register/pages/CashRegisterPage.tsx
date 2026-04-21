@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { openSessionUseCase } from "../application/openSession.usecase";
 import { closeSessionUseCase } from "../application/closeSession.usecase";
 import { getSessionSummaryUseCase } from "../application/getSessionSummary.usecase";
+import { getSessionDetailUseCase } from "../application/getSessionDetail.usecase";
 import { listRecentSessionsUseCase } from "../application/listRecentSessions.usecase";
 import { cashRegisterRepository } from "../infrastructure/cash.repository";
 import { RecentSessionsPanel } from "../ui/RecentSessionsPanel";
@@ -284,7 +285,13 @@ export default function CashRegisterPage() {
           </Card>
         )}
 
-        <RecentSessionsPanel rows={recentSessions} />
+        <RecentSessionsPanel
+          rows={recentSessions}
+          onLoadDetail={async (sessionId) => {
+            if (!company?.id) throw new Error("Contexto incompleto");
+            return await getSessionDetailUseCase({ session_id: sessionId, company_id: company.id });
+          }}
+        />
       </div>
     </AppLayout>
   );

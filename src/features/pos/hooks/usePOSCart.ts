@@ -8,6 +8,7 @@ import { CartEntity } from "../domain/Cart.entity";
 import { getProductsQuery } from "../application/queries/getProducts.query";
 import { getCustomersQuery } from "../application/queries/getCustomers.query";
 import { ensurePosReadyUseCase } from "../application/ensurePosReady.usecase";
+import { validateCheckoutUseCase } from "../application/validateCheckout.usecase";
 
 export type ProductResult = { id: string; name: string; sku: string; price: number; stock: number };
 export type CustomerResult = { id: string; full_name: string; tax_id?: string };
@@ -342,92 +343,25 @@ export function usePOSCart() {
   ];
 
   const completeSale = async () => {
-    if (!user?.id) {
-      toast.error("No hay usuario autenticado");
-      return;
-    }
-
-    if (checkingCashSession) {
-      toast.error("Espera a que se valide el estado de caja");
-      return;
-    }
-
-    if (!cashSessionReady) {
-      toast.error("Debes abrir caja antes de cobrar en el POS");
-      return;
-    }
-
-    if (checkingWarehouse) {
-      toast.error("Espera a que se valide el almacén operativo");
-      return;
-    }
-
-    if (!warehouseReady) {
-      toast.error("No hay almacén operativo para esta sucursal");
-      return;
-    }
-
-    if (!paymentConfigReady) {
-      toast.error("No hay métodos de pago configurados para cobrar");
-      return;
-    }
-
-    if (cart.lines.length === 0) {
-      toast.error("Agrega productos antes de cobrar");
-      return;
-    }
-
-    if (!company?.id || !branch?.id) {
-      toast.error("Contexto de empresa/sucursal incompleto");
-      return;
-    }
-
-    if (!cart.warehouse_id) {
-      toast.error("No se encontró un almacén activo. Configura un almacén para esta sucursal antes de cobrar.");
-      return;
-    }
-
-    const normalizedPayments = paymentLines
-      .filter((line) => line.method && normalizeMoney(line.amount) > 0)
-      .map((line) => ({
-        method: line.method,
-        amount: normalizeMoney(line.amount),
-        reference: line.reference.trim() || undefined,
-      }));
-
-    if (normalizedPayments.length === 0) {
-      toast.error("Captura al menos una línea de pago válida");
-      return;
-    }
-
-    const missingReference = normalizedPayments.some((line) => {
-      const methodCode = line.method.trim().toLowerCase();
-      const isCash = CASH_METHOD_ALIASES.has(methodCode);
-      return !isCash && !line.reference;
-    });
-
-    if (missingReference) {
-      toast.error("Captura referencia para pagos no-efectivo");
-      return;
-    }
-
-    if (totalPaid < totals.grand_total) {
-      toast.error("El pago total es insuficiente");
-      return;
-    }
-
-    const nonCashTotal = normalizedPayments
-      .filter((line) => !isCashMethod(line.method))
-      .reduce((acc, line) => acc + line.amount, 0);
-
-    if (nonCashTotal > totals.grand_total) {
-      toast.error("Los pagos no-efectivo no deben exceder el total de la venta");
-      return;
-    }
-
-    const cashLines = normalizedPayments.filter((line) => isCashMethod(line.method));
-    if (cashLines.length === 0 && totalPaid > totals.grand_total) {
-      toast.error("El excedente solo se permite cuando hay pago en efectivo para calcular cambio");
+    let normalizedPayments: Array<{ method: string; amount: number; reference?: string }> = [];
+    let checkoutTotalPaid = 0;
+    try {
+      const validation = validateCheckoutUseCase({
+        cart,
+        payments: paymentLines,
+        company_id: company?.id,
+        branch_id: branch?.id,
+        user_id: user?.id,
+        cashSessionReady,
+        checkingCashSession,
+        warehouseReady,
+        checkingWarehouse,
+        paymentConfigReady,
+      });
+      normalizedPayments = validation.normalizedPayments;
+      checkoutTotalPaid = validation.totalPaid;
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "No se pudo validar el cobro");
       return;
     }
 
@@ -456,7 +390,7 @@ export function usePOSCart() {
         throw new Error(error.message || "Error procesando la venta (Atomic Rollback)");
       }
 
-      const change = totalPaid - totals.grand_total;
+      const change = checkoutTotalPaid - totals.grand_total;
       toast.success(`Venta registrada. Cambio: $${change.toFixed(2)}`);
       clearCart();
     } catch (error: unknown) {

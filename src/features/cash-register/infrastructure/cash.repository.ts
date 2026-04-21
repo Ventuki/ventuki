@@ -79,6 +79,17 @@ export const cashRegisterRepository = {
     return { data: (data || []) as any[], error };
   },
 
+  async listSessionMovements(companyId: string, sessionId: string) {
+    const { data, error } = await supabase
+      .from("cash_movements" as any)
+      .select("id,type,amount,payment_method,reference,notes,created_at")
+      .eq("company_id", companyId)
+      .eq("session_id", sessionId)
+      .order("created_at", { ascending: true });
+
+    return { data: (data || []) as any[], error };
+  },
+
   async openSession(input: CreateSessionInput) {
     return await supabase
       .from("cash_register_sessions" as any)

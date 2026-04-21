@@ -14,6 +14,7 @@ export * from "./application/addProduct.usecase";
 export * from "./application/removeProduct.usecase";
 export * from "./application/applyDiscount.usecase";
 export * from "./application/processPayment.usecase";
+export * from "./application/validateCheckout.usecase";
 export * from "./application/ensurePosReady.usecase";
 export * from "./application/cancelSale.usecase";
 

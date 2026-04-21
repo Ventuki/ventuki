@@ -42,6 +42,9 @@ export interface StockAlert {
   min_qty: number;
   max_qty: number | null;
   severity: "low" | "overflow";
+  product_name?: string;
+  product_sku?: string;
+  warehouse_name?: string;
 }
 
 export interface Pagination {

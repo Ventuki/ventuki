@@ -128,4 +128,24 @@ export const inventoryRepository = {
       _notes: input.notes || null,
     } as any);
   },
+
+  async updateRestockConfig(input: {
+    company_id: string;
+    warehouse_id: string;
+    product_id: string;
+    min_qty: number;
+    max_qty: number | null;
+  }) {
+    return await supabase
+      .from("stock_levels" as any)
+      .update({
+        min_stock: input.min_qty,
+        max_stock: input.max_qty,
+      } as any)
+      .eq("company_id", input.company_id)
+      .eq("warehouse_id", input.warehouse_id)
+      .eq("product_id", input.product_id)
+      .select("id")
+      .single();
+  },
 };

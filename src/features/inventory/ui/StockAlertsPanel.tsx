@@ -9,7 +9,12 @@ export function StockAlertsPanel({ alerts }: { alerts: StockAlert[] }) {
         <Alert key={`${alert.product_id}:${alert.warehouse_id}:${alert.severity}`}>
           <AlertTitle>{stockAlertLabel(alert.severity)}</AlertTitle>
           <AlertDescription>
-            Producto {alert.product_id} / Almacén {alert.warehouse_id} · Stock {alert.qty.toFixed(3)} · Mínimo {alert.min_qty.toFixed(3)}
+            <span className="font-medium text-foreground">
+              {alert.product_name || alert.product_id}
+              {alert.product_sku ? ` (${alert.product_sku})` : ""}
+            </span>
+            {` · Almacén ${alert.warehouse_name || alert.warehouse_id} · Stock ${alert.qty.toFixed(3)} · Mínimo ${alert.min_qty.toFixed(3)}`}
+            {alert.max_qty != null ? ` · Máximo ${alert.max_qty.toFixed(3)}` : ""}
           </AlertDescription>
         </Alert>
       ))}

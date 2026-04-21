@@ -1,5 +1,10 @@
 # Workstreams activos
 
+## Sprint 2, QA integrada del circuito operativo
+Objetivo: validar de punta a punta los flujos endurecidos en Sprint 1 y corregir solo huecos reales detectados en operación.
+Estado: listo para arrancar.
+Entregable inicial: `docs/SPRINT_2_QA_INTEGRADA.md`
+
 ## Workstream 1, Seguridad
 Objetivo: reducir riesgo técnico visible y documentar huecos de protección.
 Estado: listo para arrancar.

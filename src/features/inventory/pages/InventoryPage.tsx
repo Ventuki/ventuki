@@ -13,6 +13,7 @@ import { useAdjustStock } from "../hooks/useAdjustStock";
 import { useTransferStock } from "../hooks/useTransferStock";
 import { useKardex } from "../hooks/useKardex";
 import { useStockAlerts } from "../hooks/useStockAlerts";
+import { useRestockConfig } from "../hooks/useRestockConfig";
 import { InventoryTable } from "../ui/InventoryTable";
 import { KardexTable } from "../ui/KardexTable";
 import { AdjustInventoryModal } from "../ui/AdjustInventoryModal";
@@ -36,6 +37,7 @@ export default function InventoryPage() {
 
   const adjustStock = useAdjustStock(() => toast.success("Ajuste aplicado"));
   const transferStock = useTransferStock(() => toast.success("Transferencia aplicada"));
+  const restockConfig = useRestockConfig(() => toast.success("Configuración de reabasto actualizada"));
 
   useEffect(() => {
     const run = async () => {
@@ -68,13 +70,13 @@ export default function InventoryPage() {
       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Inventario multi-sucursal + CEDIS</h1>
-          <p className="text-muted-foreground">Ajustes, transferencias internas, kardex, alertas y conteo físico.</p>
+          <p className="text-muted-foreground">Centro operativo para consultar existencias, detectar alertas y ejecutar movimientos controlados.</p>
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle>Filtros de inventario</CardTitle>
-            <CardDescription>Stock por sucursal y por almacén.</CardDescription>
+            <CardDescription>Consulta existencias por sucursal y almacén antes de ajustar, transferir o contar.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3 md:grid-cols-3">
             <div className="space-y-1">
@@ -121,14 +123,21 @@ export default function InventoryPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <InventoryTable rows={rows} loading={loading} />
+              <InventoryTable
+                rows={rows}
+                loading={loading}
+                onConfigureRestock={async (_row, input) => {
+                  await restockConfig.run(input);
+                  await refresh();
+                }}
+              />
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
               <CardTitle>Alertas inventario</CardTitle>
-              <CardDescription>Min/Max automático</CardDescription>
+              <CardDescription>Alertas accionables según mínimos y máximos configurados.</CardDescription>
             </CardHeader>
             <CardContent>
               <StockAlertsPanel alerts={alerts} />

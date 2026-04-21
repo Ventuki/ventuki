@@ -1,7 +1,8 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { StockRecord } from "../types/inventory.types";
+import { RestockConfigModal } from "./RestockConfigModal";
 
-export function InventoryTable({ rows, loading }: { rows: StockRecord[]; loading?: boolean }) {
+export function InventoryTable({ rows, loading, onConfigureRestock }: { rows: StockRecord[]; loading?: boolean; onConfigureRestock: (row: StockRecord, input: { warehouse_id: string; product_id: string; min_qty: number; max_qty: number | null }) => Promise<void>; }) {
   return (
     <Table>
       <TableHeader>
@@ -14,16 +15,17 @@ export function InventoryTable({ rows, loading }: { rows: StockRecord[]; loading
           <TableHead className="text-right">Reservado</TableHead>
           <TableHead className="text-right">Mín</TableHead>
           <TableHead className="text-right">Máx</TableHead>
+          <TableHead className="text-right">Reabasto</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {loading ? (
           <TableRow>
-            <TableCell colSpan={8} className="text-center text-muted-foreground">Actualizando inventario...</TableCell>
+            <TableCell colSpan={9} className="text-center text-muted-foreground">Actualizando inventario...</TableCell>
           </TableRow>
         ) : rows.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={8} className="text-center text-muted-foreground">No hay existencias para los filtros actuales.</TableCell>
+            <TableCell colSpan={9} className="text-center text-muted-foreground">No hay existencias para los filtros actuales.</TableCell>
           </TableRow>
         ) : rows.map((row) => (
           <TableRow key={row.id}>
@@ -35,6 +37,9 @@ export function InventoryTable({ rows, loading }: { rows: StockRecord[]; loading
             <TableCell className="text-right">{row.reserved_qty.toFixed(3)}</TableCell>
             <TableCell className="text-right">{row.min_qty.toFixed(3)}</TableCell>
             <TableCell className="text-right">{row.max_qty?.toFixed(3) || "-"}</TableCell>
+            <TableCell className="text-right">
+              <RestockConfigModal row={row} onSubmit={(input) => onConfigureRestock(row, input)} />
+            </TableCell>
           </TableRow>
         ))}
       </TableBody>

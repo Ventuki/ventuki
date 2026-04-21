@@ -66,6 +66,19 @@ export const cashRegisterRepository = {
     return { session, totals, error: null };
   },
 
+  async listRecentSessions(companyId: string, branchId: string, cashierId: string, limit = 10) {
+    const { data, error } = await supabase
+      .from("cash_register_sessions" as any)
+      .select("id,opened_at,closed_at,opening_amount,difference,status")
+      .eq("company_id", companyId)
+      .eq("branch_id", branchId)
+      .eq("opened_by", cashierId)
+      .order("opened_at", { ascending: false })
+      .limit(limit);
+
+    return { data: (data || []) as any[], error };
+  },
+
   async openSession(input: CreateSessionInput) {
     return await supabase
       .from("cash_register_sessions" as any)

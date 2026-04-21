@@ -1,4 +1,5 @@
 import { purchaseRepository } from "../infrastructure/purchase.repository";
+import { purchaseAuditRepository } from "../infrastructure/audit.repository";
 import { receivePurchaseSchema, type ReceivePurchaseInput } from "../validations/purchase.schema";
 import { ensurePurchasePermission, type PurchasePermission } from "./security/rbac.service";
 import { domainEventBus } from "@/lib/events/domainEventBus";
@@ -24,6 +25,19 @@ export async function receivePurchaseUseCase(
   if (receiveResult.error) {
     throw receiveResult.error;
   }
+
+  const restockOrigin = await purchaseAuditRepository.wasCreatedFromRestock(input.company_id, input.purchase_id);
+  await purchaseAuditRepository.record({
+    company_id: input.company_id,
+    actor_user_id: input.actor_user_id,
+    action: "purchase.received",
+    entity_id: input.purchase_id,
+    new_data: {
+      source: restockOrigin.fromRestock ? "inventory.restock_suggestion" : "manual_or_other",
+      warehouse_id: input.warehouse_id,
+      item_count: input.items.length,
+    },
+  });
 
   // 2. Bus Global (BUG #12 Resuelto)
   domainEventBus.publish({

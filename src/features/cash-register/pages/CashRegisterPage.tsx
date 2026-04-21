@@ -9,7 +9,9 @@ import { toast } from "sonner";
 import { openSessionUseCase } from "../application/openSession.usecase";
 import { closeSessionUseCase } from "../application/closeSession.usecase";
 import { getSessionSummaryUseCase } from "../application/getSessionSummary.usecase";
+import { listRecentSessionsUseCase } from "../application/listRecentSessions.usecase";
 import { cashRegisterRepository } from "../infrastructure/cash.repository";
+import { RecentSessionsPanel } from "../ui/RecentSessionsPanel";
 
 const moneyFormatter = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" });
 
@@ -25,6 +27,7 @@ export default function CashRegisterPage() {
   const [closingNotes, setClosingNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingSession, setLoadingSession] = useState(false);
+  const [recentSessions, setRecentSessions] = useState<Array<{ id: string; opened_at: string | null; closed_at: string | null; opening_amount: number | null; difference: number | null; status?: string | null }>>([]);
 
   const expectedCash = Number(sessionTotals?.total_cash || 0);
   const expectedCard = Number(sessionTotals?.total_card || 0);
@@ -49,6 +52,14 @@ export default function CashRegisterPage() {
       }
 
       setLoadingSession(true);
+      const recent = await listRecentSessionsUseCase({
+        company_id: company.id,
+        branch_id: branch.id,
+        cashier_user_id: user.id,
+        limit: 5,
+      }).catch(() => []);
+      setRecentSessions(recent);
+
       const { session, error } = await cashRegisterRepository.getActiveSession(company.id, branch.id, user.id);
 
       if (error) {
@@ -134,6 +145,13 @@ export default function CashRegisterPage() {
       setCountedCard(0);
       setCountedTransfer(0);
       setClosingNotes("");
+      const recent = await listRecentSessionsUseCase({
+        company_id: company.id,
+        branch_id: branch.id,
+        cashier_user_id: user.id,
+        limit: 5,
+      }).catch(() => []);
+      setRecentSessions(recent);
       toast.success("Caja cerrada correctamente");
     } catch (e: any) {
       toast.error(e?.message || "Error al cerrar caja");
@@ -265,6 +283,8 @@ export default function CashRegisterPage() {
             </CardContent>
           </Card>
         )}
+
+        <RecentSessionsPanel rows={recentSessions} />
       </div>
     </AppLayout>
   );

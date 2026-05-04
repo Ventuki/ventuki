@@ -74,25 +74,32 @@ DROP POLICY IF EXISTS "Users see own company layaways" ON public.layaways;
 CREATE POLICY "Users see own company layaways" ON public.layaways FOR SELECT TO authenticated
   USING (company_id IN (SELECT public.get_user_company_ids()));
 
-DROP POLICY IF EXISTS "Users insert layaways in own company" ON public.layaways FOR INSERT TO authenticated
+DROP POLICY IF EXISTS "Users insert layaways in own company" ON public.layaways;
+CREATE POLICY "Users insert layaways in own company" ON public.layaways FOR INSERT TO authenticated
   WITH CHECK (company_id IN (SELECT public.get_user_company_ids()));
 
-DROP POLICY IF EXISTS "Users update own company layaways" ON public.layaways FOR UPDATE TO authenticated
+DROP POLICY IF EXISTS "Users update own company layaways" ON public.layaways;
+CREATE POLICY "Users update own company layaways" ON public.layaways FOR UPDATE TO authenticated
   USING (company_id IN (SELECT public.get_user_company_ids()));
 
 -- layaway_items
-DROP POLICY IF EXISTS "Users see own company layaway items" ON public.layaway_items FOR SELECT TO authenticated
+DROP POLICY IF EXISTS "Users see own company layaway items" ON public.layaway_items;
+CREATE POLICY "Users see own company layaway items" ON public.layaway_items FOR SELECT TO authenticated
   USING (layaway_id IN (SELECT id FROM public.layaways WHERE company_id IN (SELECT public.get_user_company_ids())));
 
-DROP POLICY IF EXISTS "Users insert layaway items in own company" ON public.layaway_items FOR INSERT TO authenticated
+DROP POLICY IF EXISTS "Users insert layaway items in own company" ON public.layaway_items;
+CREATE POLICY "Users insert layaway items in own company" ON public.layaway_items FOR INSERT TO authenticated
   WITH CHECK (layaway_id IN (SELECT id FROM public.layaways WHERE company_id IN (SELECT public.get_user_company_ids())));
 
-DROP POLICY IF EXISTS "Users delete own company layaway items" ON public.layaway_items FOR DELETE TO authenticated
+DROP POLICY IF EXISTS "Users delete own company layaway items" ON public.layaway_items;
+CREATE POLICY "Users delete own company layaway items" ON public.layaway_items FOR DELETE TO authenticated
   USING (layaway_id IN (SELECT id FROM public.layaways WHERE company_id IN (SELECT public.get_user_company_ids())));
 
 -- layaway_payments
-DROP POLICY IF EXISTS "Users see own company layaway payments" ON public.layaway_payments FOR SELECT TO authenticated
+DROP POLICY IF EXISTS "Users see own company layaway payments" ON public.layaway_payments;
+CREATE POLICY "Users see own company layaway payments" ON public.layaway_payments FOR SELECT TO authenticated
   USING (layaway_id IN (SELECT id FROM public.layaways WHERE company_id IN (SELECT public.get_user_company_ids())));
 
-DROP POLICY IF EXISTS "Users insert layaway payments in own company" ON public.layaway_payments FOR INSERT TO authenticated
+DROP POLICY IF EXISTS "Users insert layaway payments in own company" ON public.layaway_payments;
+CREATE POLICY "Users insert layaway payments in own company" ON public.layaway_payments FOR INSERT TO authenticated
   WITH CHECK (layaway_id IN (SELECT id FROM public.layaways WHERE company_id IN (SELECT public.get_user_company_ids())));

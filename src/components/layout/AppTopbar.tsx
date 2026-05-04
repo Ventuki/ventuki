@@ -120,12 +120,13 @@ export function AppTopbar() {
 
     if (data && data.length > 0) {
       setBranch({ id: data[0].id, name: data[0].name });
+      toast.success(`Ahora estás en ${selected.name}`);
+      navigate("/");
     } else {
       setBranch(null);
+      toast.info("Esta empresa no tiene sucursales activas. Configura la primera sucursal para continuar.");
+      navigate("/auth/select-company");
     }
-
-    toast.success(`Ahora estás en ${selected.name}`);
-    navigate("/");
   };
 
   const handleSignOut = async () => {

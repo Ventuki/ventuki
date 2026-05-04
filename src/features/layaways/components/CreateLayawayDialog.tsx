@@ -32,7 +32,7 @@ interface LayawayLine {
 }
 
 export function CreateLayawayDialog({ open, onOpenChange }: CreateLayawayDialogProps) {
-  const { company } = useAuth();
+  const { company, branch } = useAuth();
   const createLayaway = useCreateLayaway();
   const [customerSearch, setCustomerSearch] = useState("");
   const [productSearch, setProductSearch] = useState("");
@@ -64,6 +64,12 @@ export function CreateLayawayDialog({ open, onOpenChange }: CreateLayawayDialogP
       setProductResults([]);
     }
   }, [open, form]);
+
+  useEffect(() => {
+    if (open && branch?.id) {
+      form.setValue("branch_id", branch.id, { shouldValidate: true });
+    }
+  }, [open, branch?.id, form]);
 
   useEffect(() => {
     if (!company?.id || customerSearch.length < 2) return;
@@ -129,9 +135,15 @@ export function CreateLayawayDialog({ open, onOpenChange }: CreateLayawayDialogP
       return;
     }
 
+    const branchId = values.branch_id || branch?.id || "";
+    if (!branchId) {
+      toast.error("No hay sucursal activa. Selecciona empresa y sucursal antes de crear un apartado.");
+      return;
+    }
+
     try {
       await createLayaway.mutateAsync({
-        branch_id: values.branch_id,
+        branch_id: branchId,
         customer_id: values.customer_id,
         items: lines.map((l) => ({
           product_id: l.product_id,
@@ -160,6 +172,11 @@ export function CreateLayawayDialog({ open, onOpenChange }: CreateLayawayDialogP
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {branch?.name && (
+            <p className="text-sm text-muted-foreground">
+              Sucursal operativa: <span className="font-medium text-foreground">{branch.name}</span>
+            </p>
+          )}
           <div className="rounded-md border bg-amber-50 p-4 text-sm text-amber-950 space-y-1">
             <p className="font-medium">Política operativa de apartado</p>
             <p>- Requiere cliente identificado.</p>

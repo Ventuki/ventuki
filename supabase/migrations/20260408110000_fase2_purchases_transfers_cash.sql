@@ -92,7 +92,8 @@ DROP POLICY IF EXISTS "Users see own company inventory_transfers" ON public.inve
 CREATE POLICY "Users see own company inventory_transfers" ON public.inventory_transfers FOR SELECT TO authenticated
   USING (company_id IN (SELECT public.get_user_company_ids()));
 
-DROP POLICY IF EXISTS "Users manage own company inventory_transfers" ON public.inventory_transfers FOR ALL TO authenticated
+DROP POLICY IF EXISTS "Users manage own company inventory_transfers" ON public.inventory_transfers;
+CREATE POLICY "Users manage own company inventory_transfers" ON public.inventory_transfers FOR ALL TO authenticated
   USING (company_id IN (SELECT public.get_user_company_ids()))
   WITH CHECK (company_id IN (SELECT public.get_user_company_ids()));
 

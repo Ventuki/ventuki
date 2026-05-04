@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "../AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Building2, MapPin, Plus, LogOut } from "lucide-react";
 import { toast } from "sonner";
 
@@ -20,6 +22,11 @@ interface BranchOption {
   address: string | null;
 }
 
+function canCreateFirstBranch(role: string) {
+  const r = role.toLowerCase();
+  return r === "admin" || r === "manager";
+}
+
 export default function SelectCompanyPage() {
   const navigate = useNavigate();
   const { user, setCompany, setBranch, signOut } = useAuth();
@@ -27,7 +34,10 @@ export default function SelectCompanyPage() {
   const [branches, setBranches] = useState<BranchOption[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<CompanyOption | null>(null);
   const [loading, setLoading] = useState(true);
-  const [step, setStep] = useState<"company" | "branch">("company");
+  const [step, setStep] = useState<"company" | "branch" | "needsBranch">("company");
+  const [firstBranchName, setFirstBranchName] = useState("Principal");
+  const [firstBranchAddress, setFirstBranchAddress] = useState("");
+  const [creatingBranch, setCreatingBranch] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -76,20 +86,79 @@ export default function SelectCompanyPage() {
         setStep("branch");
       }
     } else {
-      // No branches, go straight to dashboard
-      finalize(company, null);
+      setBranches([]);
+      setFirstBranchName("Principal");
+      setFirstBranchAddress("");
+      setStep("needsBranch");
     }
   };
 
-  const finalize = (company: CompanyOption, branch: BranchOption | null) => {
-    setCompany({ id: company.id, name: company.name, slug: company.slug, role: company.role });
-    if (branch) {
-      setBranch({ id: branch.id, name: branch.name });
-      toast.success(`Contexto listo: ${company.name} , ${branch.name}`);
-    } else {
-      setBranch(null);
-      toast.info(`Entraste a ${company.name}. Falta configurar una sucursal operativa.`);
+  const createFirstOperationalBranch = async () => {
+    if (!selectedCompany || !user) return;
+    const name = firstBranchName.trim();
+    if (name.length < 2) {
+      toast.error("El nombre de la sucursal debe tener al menos 2 caracteres");
+      return;
     }
+    setCreatingBranch(true);
+    try {
+      const { data: branchRow, error: branchErr } = await supabase
+        .from("branches")
+        .insert({
+          company_id: selectedCompany.id,
+          name,
+          address: firstBranchAddress.trim() || null,
+          is_active: true,
+          is_deleted: false,
+        })
+        .select("id, name, address")
+        .single();
+
+      if (branchErr) throw branchErr;
+      if (!branchRow) throw new Error("No se pudo crear la sucursal");
+
+      const { error: whErr } = await supabase.from("warehouses").insert({
+        company_id: selectedCompany.id,
+        branch_id: branchRow.id,
+        name: "Almacén Principal",
+        is_active: true,
+        is_deleted: false,
+      });
+      if (whErr) throw whErr;
+
+      const { error: crErr } = await supabase.from("cash_registers").insert({
+        company_id: selectedCompany.id,
+        branch_id: branchRow.id,
+        name: "Caja 1",
+        is_active: true,
+        is_deleted: false,
+      });
+      if (crErr) throw crErr;
+
+      const { error: cuErr } = await supabase
+        .from("company_users")
+        .update({ branch_id: branchRow.id })
+        .eq("company_id", selectedCompany.id)
+        .eq("user_id", user.id);
+      if (cuErr) throw cuErr;
+
+      finalize(selectedCompany, {
+        id: branchRow.id,
+        name: branchRow.name,
+        address: branchRow.address,
+      });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "No se pudo crear la sucursal";
+      toast.error(msg);
+    } finally {
+      setCreatingBranch(false);
+    }
+  };
+
+  const finalize = (company: CompanyOption, branch: BranchOption) => {
+    setCompany({ id: company.id, name: company.name, slug: company.slug, role: company.role });
+    setBranch({ id: branch.id, name: branch.name });
+    toast.success(`Contexto listo: ${company.name} — ${branch.name}`);
     navigate("/");
   };
 
@@ -141,16 +210,73 @@ export default function SelectCompanyPage() {
             )}
           </div>
           <CardTitle className="text-2xl">
-            {step === "company" ? "Selecciona tu empresa" : `Sucursal de ${selectedCompany?.name}`}
+            {step === "company"
+              ? "Selecciona tu empresa"
+              : step === "needsBranch"
+                ? "Sin sucursal operativa"
+                : `Sucursal de ${selectedCompany?.name}`}
           </CardTitle>
           <CardDescription>
             {step === "company"
               ? "Elige la empresa con la que deseas trabajar"
+              : step === "needsBranch"
+                ? `La empresa "${selectedCompany?.name}" no tiene sucursales activas. Crea la primera o pide ayuda a un administrador.`
               : "Elige la sucursal donde operarás"
             }
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
+          {step === "needsBranch" && selectedCompany && (
+            <div className="space-y-4">
+              {canCreateFirstBranch(selectedCompany.role) ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="first-branch-name">Nombre de la sucursal</Label>
+                    <Input
+                      id="first-branch-name"
+                      value={firstBranchName}
+                      onChange={(e) => setFirstBranchName(e.target.value)}
+                      placeholder="Ej. Principal"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="first-branch-address">Dirección (opcional)</Label>
+                    <Input
+                      id="first-branch-address"
+                      value={firstBranchAddress}
+                      onChange={(e) => setFirstBranchAddress(e.target.value)}
+                      placeholder="Calle, número, colonia…"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Se crearán también un almacén principal y una caja base para poder operar POS e inventario.
+                  </p>
+                  <Button
+                    className="w-full"
+                    onClick={createFirstOperationalBranch}
+                    disabled={creatingBranch}
+                  >
+                    {creatingBranch ? "Creando…" : "Crear sucursal y continuar"}
+                  </Button>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Tu rol no permite crear sucursales. Pide a un administrador que registre al menos una sucursal activa para esta empresa.
+                </p>
+              )}
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setStep("company");
+                  setSelectedCompany(null);
+                  setBranches([]);
+                }}
+              >
+                ← Volver a empresas
+              </Button>
+            </div>
+          )}
           {step === "company" &&
             companies.map((c) => (
               <button
